@@ -1,0 +1,32 @@
+Example 1:
+
+Get-Mailbox | Select-Object Name,Alias | Out-File c:\report.txt
+
+
+Example 2:
+
+Get-Mailbox | Select-Object Name,Alias | 
+  Export-CSV c:\report.csv –NoType
+
+  
+Example 3:
+
+Get-Mailbox | `
+  Select-Object Name,EmailAddresses | `
+    Export-CSV c:\report.csv -NoType
+
+
+Example 4:
+
+Get-Mailbox | 
+  Select-Object Name,@{n="Email";e={$_.EmailAddresses -Join ";"}} | 
+    Export-CSV c:\report1.csv -NoType
+
+	
+Example 5:
+
+Get-Mailbox | 
+  select-Object Name,
+    @{n="Email";
+      e={($_.EmailAddresses | %{$_.SmtpAddress}) -Join ";"}
+     } | Export-CSV c:\report2.csv -NoType

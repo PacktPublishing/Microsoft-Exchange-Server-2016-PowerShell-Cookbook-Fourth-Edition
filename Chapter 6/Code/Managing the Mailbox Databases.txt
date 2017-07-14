@@ -1,0 +1,38 @@
+Example 1:
+
+New-MailboxDatabase -Name DB4 `
+-EdbFilePath E:\Databases\DB4\Database\DB4.edb `
+-LogFolderPath E:\Databases\DB4\Logs `
+-Server EX01
+
+Mount-Database -Identity DB4
+
+Set-MailboxDatabase -Identity DB4 -Name Database4
+
+Remove-MailboxDatabase -Identity Database4 -Confirm:$false
+
+
+Example 2:
+
+New-MailboxDatabase -Name DB10 -Server EX01 | Mount-Database
+
+
+Example 3:
+
+Set-MailboxDatabase -Identity DB1 -IsExcludedFromProvisioning $true
+
+
+Example 4:
+
+$data = Import-CSV .\DBs.csv
+foreach ($row in $data) {
+  	$DBName = $row.DBName
+	$LogPath = 'E:\Databases\' + $DBName + '\Logs'
+	$DBPath = 'E:\Databases\' + $DBName + '\Database\' + $DBName + '.edb'
+	$Server = $row.Server
+	New-MailboxDatabase -Name $DBName -Server $Server -Edbfilepath $DBPath -Logfolderpath $LogPath
+}
+foreach ($row in $data) {
+	$DBName = $row.DBName
+	Mount-Database $DBName
+}

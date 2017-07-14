@@ -1,0 +1,6 @@
+Name,FirstName,LastName,Alias,UserPrincipalName,OrganizationalUnit,City,State,Title,Department
+Pete Dickson,Pete,Dickson,pdickson,Pdickson@contoso.com,Sales,Phoenix,AZ,Manager,Accounting
+Emanuel Moss,Emanuel,Moss,emoss,Emoss@contoso.com,Sales,Phoenix,AZ,Manager,Accounting
+Lee Sanders,Lee,Sanders,lsanders,Lsanders@contoso.com,Sales,Phoenix,AZ,Manager,Accounting
+Arlene Finley,Arlene,Finley,afinley,Afinley@contoso.com,Sales,Phoenix,AZ,Manager,Accounting
+Ruben Mcleod,Ruben,Mcleod,rmcleod,Rmcleod@contoso.com,Sales,Phoenix,AZ,Manager,Accounting

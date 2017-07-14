@@ -1,0 +1,31 @@
+Example 1:
+
+New-AddressList -Name 'All Sales Users' `
+-RecipientContainer contoso.com/Sales `
+-IncludedRecipients MailboxUsers
+
+
+Example 2:
+
+New-AddressList -Name MobileUsers `
+-RecipientContainer contoso.com `
+-RecipientFilter {
+  HasActiveSyncDevicePartnership -ne $false
+}
+
+
+Example 3:
+
+New-AddressList -Name MobileUsers `
+-RecipientContainer contoso.com `
+-RecipientFilter {
+  (HasActiveSyncDevicePartnership -ne $false) -and 
+  (Phone -ne $null)
+}
+
+
+Example 4:
+
+Update-AddressList -Identity "MobileUsers"
+
+Update-AddressList -Identity "All Sales Users"

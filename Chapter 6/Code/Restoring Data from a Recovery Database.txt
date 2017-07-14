@@ -1,0 +1,36 @@
+Example 1:
+
+New-MailboxDatabase -Name RecoveryDB `
+-EdbFilePath E:\Recovery\DB1\DB1.edb `
+-LogFolderPath E:\Recovery\DB1 `
+-Recovery `
+-Server MBX1
+
+
+Example 2:
+
+eseutil /mh .\DB1.edb
+eseutil /R E00 /D
+Mount-Database -Identity RecoveryDB
+
+
+Example 3:
+
+Get-MailboxStatistics -Database RecoveryDB | fl DisplayName,MailboxGUID,LegacyDN
+
+
+Example 4:
+
+New-MailboxRestoreRequest -SourceDatabase RecoveryDB `
+-SourceStoreMailbox "Joe Smith" `
+-TargetMailbox joe.smith
+
+
+Example 5:
+
+$mailboxes = Get-MailboxStatistics -Database RecoveryDB
+foreach($mailbox in $mailboxes) {
+	New-MailboxRestoreRequest -SourceDatabase RecoveryDB `
+	-SourceStoreMailbox $mailbox.DisplayName `
+	-TargetMailbox $mailbox.DisplayName -whatif
+}

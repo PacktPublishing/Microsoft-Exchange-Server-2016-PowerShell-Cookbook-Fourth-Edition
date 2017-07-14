@@ -1,0 +1,43 @@
+Example 1:
+
+Set-OwaVirtualDirectory -Identity 'TLEX01\owa (Default Web Site)' `
+-ExternalUrl https://mail.contoso.com/owa
+
+
+Example 2:
+
+Set-EcpVirtualDirectory -Identity 'TLEX01\ecp (Default Web Site)' `
+-ExternalUrl https://mail.contoso.com/ecp
+
+
+Example 3:
+
+Get-EcpVirtualDirectory -Server TLEX01 | 
+  Set-EcpVirtualDirectory -ExternalUrl https://mail.contoso.com/ecp
+
+  
+Example 4:
+
+Set-ClientAccessService -Identity TLEX01 `
+-AutoDiscoverServiceInternalUri `
+https://mail.contoso.com/Autodiscover/Autodiscover.xml
+
+
+Example 5:
+
+Set-OABVirtualDirectory -Identity "TLEX01\oab (Default Web Site)" `
+-ExternalUrl https://mail.contoso.com/oab
+
+
+Example 6:
+
+Set-ActivesyncVirtualDirectory -Identity `
+"TLEX01\Microsoft-Server-ActiveSync (Default Web Site)" `
+-ExternalURL https://mail.contoso.com/Microsoft-Server-Activesync
+
+
+Example 7:
+
+Set-WebServicesVirtualDirectory -Identity `
+"TLEX01\EWS (Default Web Site)" `
+-ExternalUrl https://mail.contoso.com/ews/exchange.asmx

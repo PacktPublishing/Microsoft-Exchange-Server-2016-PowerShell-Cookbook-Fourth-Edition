@@ -1,0 +1,33 @@
+Example 1:
+
+Set-CsArchivingConfiguration -EnableArchiving ImAndWebConf -EnableExchangeArchiving $True
+
+- None: which mean you are not archiving anythingg
+- ImOnly: only IM session transcripts are archived
+- ImAndWebConf: will archive both IM and web conference transcripts
+
+
+Example 2:
+
+New-CsArchivingPolicy -Identity "TestlabsArchivingPolicy" -ArchiveInternal $True -ArchiveExternal $True
+Grant-CsArchivingPolicy -Identity "pdickson" -PolicyName  "TestlabsArchivingPolicy"
+
+Set-CsArchivingPolicy -Identity "Global" -ArchiveInternal $True -ArchiveExternal $True
+
+
+Example 3:
+
+Set-CsUser -Identity pdickson -ExchangeArchivingPolicy ArchivingToExchange
+
+1.	-Uninitialized. Indicates that archiving will be based on the In-Place Hold settings configured for the user's Exchange mailbox; if In-Place Hold has not been enabled on the user's mailbox then the user will have his or her messaging and Web conferencing transcripts archived in Skype for Business Server.
+2.	-UseLyncArchivingPolicy. Indicates that the user's instant messaging and Web conferencing transcripts should be archived in Skype for Business Server rather than in Exchange.
+3.	-NoArchiving. Indicates that the user's instant messaging and Web conferencing transcripts should not be archived at all. Note that this setting overrides any Skype for Business Server archiving policies assigned to the user.
+4.	-ArchivingToExchange. Indicates that the user's instant messaging and Web conferencing transcripts should be archived to Exchange regardless of the In-Place Hold settings that have (or have not) been assigned to the user's mailbox.
+
+
+Example 4:
+
+New-CsClientPolicy -Identity "TestlabsClientPolicy" -EnableExchangeDelegateSync $True -EnableIMAutoArchiving $True
+Grant-CsClientPolicy -PolicyName "TestlabsClientPolicy" -Identity pdickson
+
+Set-CsClientPolicy -Identity "Global" -EnableExchangeDelegateSync $True -EnableIMAutoArchiving $True

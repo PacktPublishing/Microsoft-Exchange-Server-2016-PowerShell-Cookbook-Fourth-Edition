@@ -1,0 +1,56 @@
+Example 1:
+
+Get-MobileDeviceStatistics -Mailbox lsanders
+
+Get-MobileDeviceStatistics -Mailbox lsanders | 
+  select LastSuccessSync,Status,DevicePhoneNumber,DeviceType
+
+Get-MobileDeviceStatistics -Mailbox lsanders | 
+  select LastSuccessSync,Status,DevicePhoneNumber,DeviceType | 
+      Export-CSV -Path c:\report.csv -NoType
+
+	  
+Example 2:
+
+$dev = Get-MobileDevice | ?{$_.DeviceAccessState -eq 'Allowed'}
+
+$dev | ForEach-Object {
+  $mailbox = $_.UserDisplayName
+  $stats = Get-MobileDeviceStatistics –Identity $_
+	$stats | Select-Object @{n="Mailbox";e={$mailbox}},
+	  LastSuccessSync,
+	  Status,
+	  DevicePhoneNumber,
+	  DeviceType
+}
+
+
+Example 3:
+
+$mbx = Get-CASMailbox | ?{$_.HasActiveSyncDevicePartnership}
+$mbx | ForEach-Object {
+  $mailbox = $_.Name
+  $stats = Get-MobileDeviceStatistics -Mailbox $mailbox
+	$stats | Select-Object @{n="Mailbox";e={$mailbox}},
+	  LastSuccessSync,
+	  Status,
+	  DevicePhoneNumber,
+	  DeviceType
+}
+
+
+Example 4:
+
+Export-ActiveSyncLog `
+-Filename C:\inetpub\logs\LogFiles\W3SVC1\u_ex170501.log `
+-OutputPath c:\report
+
+
+Example 5:
+
+$path = "C:\inetpub\logs\LogFiles\W3SVC1\"
+Get-ChildItem -Path $path -Filter u_ex1705*.log | %{
+  Export-ActiveSyncLog -Filename $_.fullname `
+	-OutputPrefix $_.basename `
+	-OutputPath c:\report
+}

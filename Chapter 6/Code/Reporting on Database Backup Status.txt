@@ -1,0 +1,34 @@
+Example 1:
+
+Get-MailboxDatabase -Identity DB1 -Status | fl Name,LastFullBackup
+
+Get-MailboxDatabase -Status | Select-Object Name,LastFullBackup
+
+
+Example 2:
+
+Get-MailboxDatabase -Status | 
+  ?{$_.LastFullBackup -le (Get-Date).AddDays(-1)} | 
+    Select-object Name,LastFullBackup
+
+	
+Example 3:
+
+Get-MailboxDatabase -Status | ForEach-Object {
+  if(!$_.LastFullBackup) {
+	  $LastFull = "Never"
+	}
+	else {
+	  $LastFull = $_.LastFullBackup
+	}
+	New-Object PSObject -Property @{
+	    Name = $_.Name
+		LastFullBackup = $LastFull
+		DaysSinceBackup = if($LastFull -is [datetime]) {
+		  (New-TimeSpan $LastFull).Days
+		}
+		Else {
+		  $LastFull
+		}
+	}
+}

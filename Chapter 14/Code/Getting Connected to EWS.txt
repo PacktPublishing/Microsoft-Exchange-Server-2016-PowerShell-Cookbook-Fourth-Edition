@@ -1,0 +1,47 @@
+Example 1:
+
+Add-Type -Path C:\EWS\Microsoft.Exchange.WebServices.dll
+$svc = New-Object Microsoft.Exchange.WebServices.Data.ExchangeService
+$svc.AutoDiscoverUrl("lsanders@testlabs.se")
+
+
+Example 2:
+
+[System.Reflection.Assembly]::LoadFile("C:\EWS\Microsoft.Exchange.WebServices.dll")
+
+
+Example 3:
+
+$svc=New-Object Microsoft.Exchange.WebServices.Data.ExchangeService `
+-ArgumentList "Exchange2013_SP1"
+
+
+Example 4:
+
+[System.Reflection.Assembly]::LoadFile(
+  "C:\EWS\Microsoft.Exchange.WebServices.dll"
+)
+$svc=New-Object Microsoft.Exchange.WebServices.Data.ExchangeService
+$svc.Credentials = New-Object `
+Microsoft.Exchange.WebServices.Data.WebCredentials `
+-ArgumentList "lsanders","P@ssw0rd01","testlabs.se"
+
+
+Example 5:
+
+$url = "https://autodiscover.testlabs.se/EWS/Exchange.asmx"
+$svc.Url = New-Object System.Uri -ArgumentList $url
+
+
+Example 6:
+
+[System.Reflection.Assembly]::LoadFile(
+  "C:\EWS\Microsoft.Exchange.WebServices.dll"
+)
+
+$svc = New-Object Microsoft.Exchange.WebServices.Data.ExchangeService
+
+$spm = [System.Net.ServicePointManager]
+$spm::ServerCertificateValidationCallback = {$true}
+
+$svc.AutoDiscoverUrl("lsanders@testlabs.se")

@@ -1,0 +1,32 @@
+Example 1:
+
+$allusers = Get-AddressList "All Users"
+Get-Recipient -RecipientPreviewFilter $allusers.RecipientFilter | 
+  Select-Object DisplayName,Database | 
+    Export-Csv -Path c:\allusers.csv -NoTypeInformation
+
+	
+Example 2:
+
+$allusers = Get-AddressList "All Users"
+Get-Recipient -RecipientPreviewFilter $allusers.RecipientFilter | 
+  Select-Object DisplayName,
+    @{n="EmailAddresses";e={$_.EmailAddresses -join ";"}} | 
+      Export-Csv -Path c:\allusers.csv -NoTypeInformation
+
+	  
+Example 3:
+
+$GAL = Get-GlobalAddressList "Default Global Address List"
+Get-Recipient -RecipientPreviewFilter $GAL.RecipientFilter | 
+  Select-Object DisplayName,
+    @{n="EmailAddresses";e={$_.EmailAddresses -join ";"}} | 
+      Export-Csv -Path c:\GAL.csv -NoTypeInformation
+
+
+Example 4:
+
+$dl = Get-DistributionGroupMember -Identity DL_Marketing
+$dl | Export-Clixml -Path C:\Temp\dl.xml
+
+Import-Clixml -Path C:\Temp\dl.xml

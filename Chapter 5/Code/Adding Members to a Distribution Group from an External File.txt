@@ -1,0 +1,12 @@
+Example 1:
+
+Get-Content  c:\Scripts\users.txt | ForEach-Object {
+  Add-DistributionGroupMember –Identity Sales -Member $_
+}
+
+
+Example 2:
+
+Import-Csv C:\Scripts\users.csv | ForEach-Object {
+  Add-DistributionGroupMember Sales -Member $_.EmailAddress
+}

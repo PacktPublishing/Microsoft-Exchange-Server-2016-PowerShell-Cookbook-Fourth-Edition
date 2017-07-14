@@ -1,0 +1,420 @@
+###############################################################
+Configuring journaling
+
+Set-MailboxDatabase DB01 -JournalRecipient journal
+
+
+New-JournalRule -Name “Journal – John” -JournalEmailAddress journal@contoso.com -Recipient john@contoso.com –Scope External –Enabled $True
+
+
+Set-MailboxDatabase DB01 -JournalRecipient $null
+
+
+Set-TransportConfig -JournalingReportNdrTo alternate.journal@contoso.com
+
+
+Set-TransportConfig -VoicemailJournalingEnabled $False
+
+
+
+
+
+
+###############################################################
+Managing archive mailboxes
+
+Enable-Mailbox administrator -Archive
+
+
+Get-Mailbox -Database DB01 | `
+Enable-Mailbox -Archive -ArchiveDatabase ARCHIVE01
+
+
+$password = ConvertTo-SecureString P@ssword -AsPlainText -Force
+New-Mailbox -Name "Dave Smith" -alias dsmith '
+-UserPrincipalName dave@contoso.com '
+-Database DB01 '
+-Archive '
+-ArchiveDatabase ARCHIVE01 '
+-Password $password
+
+
+
+Disable-Mailbox dsmith -Archive –Confirm:$False
+
+
+
+
+
+
+###############################################################
+Configuring archive mailbox quotas
+
+Set-Mailbox dsmith -ArchiveQuota 10gb -ArchiveWarningQuota 8gb
+
+
+Get-Mailbox -Database DB01 –Archive | `
+Set-Mailbox -ArchiveQuota 10gb -ArchiveWarningQuota 8gb
+
+
+Get-Mailbox –ResultSize Unlimited –Archive | 
+Where-Object {$_.ArchiveQuota -ge 100gb} | 
+Set-Mailbox -ArchiveQuota 5gb -ArchiveWarningQuota 4gb
+
+
+
+Get-Mailbox <user> | Format-List *archive*
+
+
+
+
+
+
+###############################################################
+Creating retention tags and policies
+
+New-RetentionPolicyTag -Name AllUsers-Inbox '
+-Type Inbox '
+-Comment "Items older than 90 days are deleted" '
+-RetentionEnabled $True '
+-AgeLimitForRetention 90 '
+-RetentionAction PermanentlyDelete
+
+
+New-RetentionPolicyTag -Name AllUsers-Default '
+-Type All '
+-Comment "Items older than 120 days are permanently deleted" '
+-RetentionEnabled $True '
+-AgeLimitForRetention 120 '
+-RetentionAction PermanentlyDelete
+
+
+New-RetentionPolicyTag -Name Critical '
+-Type Personal '
+-Comment "Use this tag for all critical items" '
+-RetentionEnabled $True '
+-AgeLimitForRetention 730 '
+-RetentionAction DeleteAndAllowRecovery
+
+
+
+New-RetentionPolicy –Name AllUsers '
+-RetentionPolicyTagLinks AllUsers-Inbox, '
+AllUsers-Default, Critical
+
+
+Set-RetentionPolicy Sales-Users '
+-RetentionPolicyTagLinks Sales-Inbox, Sales-DeletedItems
+
+
+
+$Tags = (Get-RetentionPolicy Sales-Users).RetentionPolicyTagLinks
+$Tags += Get-RetentionPolicyTag Sales-Critical
+Set-RetentionPolicy Sales-Users -RetentionPolicyTagLinks $Tags
+
+
+
+Get-RetentionPolicyTag –IncludeSystemTags
+
+
+
+
+
+###############################################################
+Applying retention policies to mailboxes
+
+Set-Mailbox dsmith -RetentionPolicy AllUsers
+
+
+Get-Mailbox -RecipientTypeDetails UserMailbox `
+-ResultSize Unlimited | `
+Set-Mailbox -RetentionPolicy AllUsers
+
+
+Get-Mailbox -RecipientTypeDetails UserMailbox `
+-Filter {RetentionPolicy -eq $null} `
+-ResultSize Unlimited | `
+Set-Mailbox -RetentionPolicy AllUsers
+
+
+
+Start-ManagedFolderAssistant dsmith@contoso.com
+
+
+Get-Mailbox -Database DB01 | Start-ManagedFolderAssistant
+
+
+
+
+
+###############################################################
+Placing mailboxes on retention hold
+
+Set-Mailbox dsmith -RetentionHoldEnabled $True
+
+
+Set-Mailbox dsmith -RetentionHoldEnabled $False
+
+
+Set-Mailbox dsmith '
+-RetentionHoldEnabled $True '
+–RetentionComment "You are currently on retention hold"
+
+
+Get-DistributionGroupMember Marketing | `
+Set-Mailbox -RetentionHoldEnabled $True
+
+
+Get-Mailbox -Database DB01 | `
+Set-Mailbox -RetentionHoldEnabled $True
+
+
+
+Set-Mailbox dsmith -RetentionHoldEnabled $True '
+-StartDateForRetentionHold '5/1/2017 8:00:00 AM' '
+-EndDateForRetentionHold '5/31/2017 5:00:00 PM'
+
+
+
+Get-Mailbox –ResultSize Unlimited | `
+Where-Object {$_.RetentionHoldEnabled}
+
+
+
+
+
+
+
+###############################################################
+Placing mailboxes on in-place hold or litigation hold
+
+Set-Mailbox john@contoso.com `
+-LitigationHoldEnabled $True `
+-LitigationHoldDuration 90
+
+
+Add-RoleGroupMember "Discovery Management" '
+-Member administrator
+
+
+
+New-MailboxSearch –Name "InPlace-Hold-dsmith" `
+-SourceMailboxes dsmith@contoso.com `
+–InPlaceHoldEnabled $True
+
+
+
+
+Set-MailboxSearch "InPlace-Hold-dsmith" '
+–InPlaceHoldEnabled $False
+Remove-MailboxSearch "InPlace-Hold-dsmith"
+
+
+
+Set-Mailbox dsmith '
+–RetentionComment "You are currently on in-place hold, please vis-it the provided URL" '
+–RetentionUrl http://intranet.contoso.com/in-place-hold/
+
+
+
+
+Get-Mailbox -Filter {LitigationHoldEnabled -eq $True} | `
+Select Name, LitigationHoldOwner, LitigationHoldDate
+
+
+Get-Mailbox -ResultSize Unlimited | Where {$_.InPlaceHolds} | `
+Select Name, InPlaceHolds
+
+
+Get-MailboxSearch | Select InPlaceHoldIdentity, `
+Name, SourceMailboxes, CreatedBy, InPlaceHoldEnabled
+
+
+
+
+
+###############################################################
+Searching and placing a hold on public folders
+
+New-MailboxSearch -Name “All PFs Hold” -AllPublicFolderSources $True -AllSourceMailboxes $False -EstimateOnly -InPlaceHoldEnabled $True
+Start-MailboxSearch “All PFs Hold”
+
+
+
+
+New-MailboxSearch -Name “All PFs Project X Search” -AllPublicFolderSources $True -AllSourceMailboxes $False -SearchQuery “project x” -StartDate “01/01/2017” -EndDate “05/31/2017” -EstimateOnly
+Start-MailboxSearch “All PFs Project X Search”
+Get-MailboxSearch “All PFs Project X Search” | Select ResultNumberEstimate
+
+
+
+
+
+
+###############################################################
+Performing eDiscovery searches
+
+New-MailboxSearch -Name Case1 '
+-TargetMailbox "Discovery Search Mailbox" '
+-SearchQuery 'Subject:"Corporate Secrets"' '
+-StartDate "1/1/2016" '
+-EndDate "12/31/2016" '
+-MessageTypes Email '
+-IncludeUnsearchableItems '
+-LogLevel Full
+
+
+
+New-MailboxSearch -Name Case2 '
+-SourceMailboxes dsmith, jjones '
+-TargetMailbox administrator '
+-SearchQuery 'Subject:"Corporate Secrets"' '
+-MessageTypes Email, IM, Notes '
+-StatusMailRecipients legal@contoso.com
+
+
+
+Get-MailboxSearch | Select Name, Status, Percentcomplete
+
+
+Stop-MailboxSearch Case2
+Set-MailboxSearch Case2 -SourceMailboxes Finance, HR
+Start-MailboxSearch Case2
+
+
+
+
+
+
+###############################################################
+Performing Compliance searches
+
+New-ComplianceSearch -Name "Search All - Project X" -ExchangeLocation All -ContentMatchQuery 'sent>=01/01/2017 AND sent<=07/31/2017 AND subject:"project x"'
+Start-ComplianceSearch "Search All - Project X"
+Get-ComplianceSearch "Search All - Project X" | FL
+
+
+
+$results = (Get-ComplianceSearch "Search All - Project X").SuccessResults
+$mbxs = @()
+$lines = $results -Split '[\r\n]+';
+ForEach ($line in $lines) {
+  If ($line -match 'Location: (\S+),.+Item count: (\d+)' -and $matches[2] -gt 0)
+  {
+    $mbxs += $matches[1];
+  }
+}
+
+
+
+
+
+
+###############################################################
+Configuring Data Loss Prevention
+
+New-DlpPolicy -Name “Block Outbound Credit Card Details” -Template “U.K. Financial Data” -Mode Enforce -State Enabled
+
+
+(Get-TransportRule "U.K. Financial: Scan email sent outside - high count").MessageContainsDataClassifications
+
+
+Disable-TransportRule "U.K. Financial: Allow override"
+
+
+New-TransportRule “Override CEO” -DlpPolicy “Block Outbound Credit Card Details” -From ceo@testlabs.se -SetHeaderName “X-Ms-Exchange-Organization-Dlp-SenderOverrideJustification” -SetHeaderValue “TransportRule override” -Priority 0
+
+
+
+
+###############################################################
+Configuring administrator audit logging
+
+Set-AdminAuditLogConfig -AdminAuditLogEnabled $True
+
+
+Set-AdminAuditLogConfig '
+-AdminAuditLogCmdlets Set-Mailbox, Set-CASMailbox
+
+
+
+Set-AdminAuditLogConfig -AdminAuditLogExcludedCmdlets New-Mailbox
+
+
+
+Set-AdminAuditLogConfig -TestCmdletLoggingEnabled $True
+
+
+Set-AdminAuditLogConfig -TestCmdletLoggingEnabled $False
+
+
+
+
+
+
+
+###############################################################
+Searching the administrator audit logs
+
+Search-AdminAuditLog -Cmdlets Set-Mailbox '
+-StartDate 6/1/2017 '
+-EndDate 6/30/2017 '
+-IsSuccess $True
+
+
+New-AdminAuditLogSearch –Name "AdminAuditLogSearch01" '
+-Cmdlets Set-Mailbox '
+-StartDate 6/1/2017 '
+-EndDate 6/30/2017 '
+-StatusMailRecipients admin@contoso.com
+
+
+
+$logs = Search-AdminAuditLog | Select-Object -First 10
+
+
+
+
+
+
+###############################################################
+Configuring mailbox audit logging
+
+Set-Mailbox CEO -AuditEnabled $True
+Get-Mailbox CEO | Select Audit*
+
+
+Set-Mailbox CEO -AuditAdmin @{Add=”Copy”} `
+-AuditDelegate @{Add=”MoveToDeletedItems”}
+
+
+
+Search-MailboxAuditLog CEO `
+-StartDate 05/01/2017 `
+-EndDate 05/31/2017 `
+-LogonTypes Delegate -ShowDetails
+
+
+
+New-MailboxAuditLogSearch –Mailboxes CEO `
+-StartDate 05/01/2017 `
+-EndDate 05/31/2017 `
+–LogonTypes Delegate -ShowDetails `
+–StatusMailRecipients auditor@contoso.com
+
+
+Get-MailboxFolderStatistics CEO `
+-FolderScope RecoverableItems | `
+Where {$_.Name -eq "audits"} | Select ItemsInFolder
+
+
+
+
+Search-MailboxAuditLog CEO -ShowDetails | `
+Where {$_.Operation -match “delete”}
+
+
+
+
+Set-MailboxAuditBypassAssociation svc_Backup `
+-AuditBypassEnabled $True

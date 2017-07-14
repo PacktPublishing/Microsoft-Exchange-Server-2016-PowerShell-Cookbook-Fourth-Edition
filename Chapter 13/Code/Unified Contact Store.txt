@@ -1,0 +1,22 @@
+Example 1:
+
+New-CsUserServicesPolicy -Identity "TestlabsAllowUnifiedContactStore" -UcsAllowed $True
+Grant-CsUserServicesPolicy -Identity "pdickson" -PolicyName "TestlabsAllowUnifiedContactStore"
+
+
+Example 2:
+
+cd $exscripts
+.\Configure-EnterprisePartnerApplication.ps1 -AuthMetadataUrl "https://tlfe01.testlabs.se/metadata/json/1" -ApplicationType Lync
+
+New-CsPartnerApplication -Identity Exchange -ApplicationTrustLevel Full -MetadataUrl "https://autodiscover.testlabs.se/autodiscover/metadata/json/1"
+
+
+Example 3:
+
+Test-CsExStorageConnectivity -SipUri "sip:pdickson@testlabs.se"
+
+$credential = Get-Credential "testlabs\pdickson"
+Test-CsUnifiedContactStore -UserSipAddress "sip:pdickson@testlabs.se" -TargetFqdn "tlfe01.testlabs.se" -UserCredential $credential
+
+Debug-CsUnifiedContactStore -Identity pdickson@testlabs.se | fl

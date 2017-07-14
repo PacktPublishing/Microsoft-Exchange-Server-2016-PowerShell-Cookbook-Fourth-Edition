@@ -1,0 +1,74 @@
+###############################################################
+Using the word phrase search
+
+
+Search-Mailbox administrator '
+-SearchQuery "from:sales@contoso.com" '
+-DeleteContent '
+-Force
+
+
+New-ComplianceSearch -Name "Delete Sales Emails"`
+-ExchangeLocation administrator `
+-ContentMatchQuery “from:sales@contoso.com”
+Start-ComplianceSearch " Delete Sales Emails "
+New-ComplianceSearchAction -SearchName "Delete Sales Emails"`
+-Purge -PurgeType SoftDelete
+
+
+New-MailboxSearch -Name MySearch '
+-TargetMailbox "Discovery Search Mailbox" '
+-SearchQuery 'Body:"Employee Salary"' '
+-MessageTypes Email '
+-IncludeUnsearchableItems '
+-LogLevel Full
+
+
+
+
+
+###############################################################
+Using a date range search
+
+Search-Mailbox administrator '
+-SearchQuery "Received:today" '
+-DeleteContent -Force
+
+
+Search-Mailbox administrator '
+-SearchQuery "Received:03/01/2017..07/01/2017" '
+-DeleteContent -Force
+
+
+
+
+###############################################################
+Using the message type search
+
+Search-Mailbox administrator '
+-SearchQuery "Kind:Contacts" '
+-DeleteContent -Force
+
+
+Search-Mailbox administrator '
+-SearchQuery "Kind:Notes" '
+-DeleteContent -Force
+
+
+
+
+###############################################################
+Using search operators
+
+
+Search-Mailbox administrator '
+-SearchQuery 'Body:"Social Security Number" AND Kind:Meeting' '
+-DeleteContent -Force
+
+
+New-MailboxSearch -Name MyTestSearch '
+-SourceMailboxes administrator '
+-TargetMailbox "Discovery Search Mailbox" '
+-SearchQuery 'Body:"Social Security Number" OR Subject:"SSN"' '
+-MessageTypes Email '
+-IncludeUnsearchableItems -LogLevel Full

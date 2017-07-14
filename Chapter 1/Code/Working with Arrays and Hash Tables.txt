@@ -1,0 +1,75 @@
+Example 1:
+
+$servers = "EX1","EX2","EX3"
+
+$hashtable = @{}
+$hashtable["server1"] = 1
+$hashtable["server2"] = 2
+$hashtable["server3"] = 3
+
+Example 2:
+
+$hashtable = @{server1 = 1; server2 = 2; server3 = 3}
+
+Example 3:
+
+$hashtable = @{
+  server1 = 1
+  server2 = 2
+  server3 = 3
+}
+
+$servers = @()
+
+Example 4:
+
+$servers[2] = "EX4"
+
+Example 5:
+
+$servers += "EX5"
+
+Example 6:
+
+$servers.Count
+
+Example 7:
+
+$servers | ForEach-Object {"Server Name: $_"}
+
+Example 8:
+
+$servers -contains "EX1"
+
+Example 9:
+
+$hashtable.GetEnumerator() | sort value
+
+Example 10:
+
+$parameters = @{
+  Title = "Manager"
+  Department = "Sales"
+  Office = "Headquarters"
+}
+
+Set-User testuser @parameters
+
+Example 11:
+
+$mailboxes = Get-Mailbox t*
+$mailboxes
+$mailboxes[0]
+
+Example 12:
+
+$mailboxes = @(Get-Mailbox testuser)
+
+Example 13:
+
+$mailbox = Get-Mailbox testuser
+$mailbox.EmailAddresses += "testuser2@testlabs.se"
+Set-Mailbox testuser -EmailAddresses $mailbox.EmailAddresses
+
+$mailbox.EmailAddresses -= "testuser2@testlabs.se"
+Set-Mailbox testuser -EmailAddresses $mailbox.EmailAddresses

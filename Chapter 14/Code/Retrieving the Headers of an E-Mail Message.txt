@@ -1,0 +1,99 @@
+Example 1:
+
+Add-Type -Path C:\EWS\Microsoft.Exchange.WebServices.dll
+$svc = New-Object 傍ypeName Microsoft.Exchange.WebServices.Data.ExchangeService
+$svc.AutoDiscoverUrl("lsanders@testlabs.se")
+
+$view = New-Object 傍ypeName `
+Microsoft.Exchange.WebServices.Data.ItemView `
+-ArgumentList 100
+
+$schema = [Microsoft.Exchange.WebServices.Data.ItemSchema]
+
+$propertyset = New-Object 傍ypeName `
+Microsoft.Exchange.WebServices.Data.PropertySet (
+  $schema::IdOnly
+)
+
+$view.PropertySet = $propertyset
+
+$query = "Subject:'Sales'"
+
+$items = $svc.FindItems("Inbox",$query,$view)
+
+$items | Foreach-Object{
+
+  $headerview = New-Object 傍ypeName `
+  Microsoft.Exchange.WebServices.Data.ItemView `
+  -ArgumentList 1
+
+  $headerprops = New-Object 傍ypeName `
+    Microsoft.Exchange.WebServices.Data.PropertySet (
+    $schema::InternetMessageHeaders
+  )
+
+  $headerview.PropertySet = $headerprops
+
+  $message = [Microsoft.Exchange.WebServices.Data.Item]::Bind(
+    $svc, $_.Id, $headerview.PropertySet
+  )
+
+  $message.InternetMessageHeaders
+}
+
+
+Example 2:
+
+Param($query, $mailbox, $folder)
+
+Add-Type -Path C:\EWS\Microsoft.Exchange.WebServices.dll
+$svc = New-Object 傍ypeName Microsoft.Exchange.WebServices.Data.ExchangeService
+
+$id = New-Object 傍ypeName `
+Microsoft.Exchange.WebServices.Data.ImpersonatedUserId `
+-ArgumentList "SmtpAddress",$mailbox
+
+$svc.ImpersonatedUserId = $id
+$svc.AutoDiscoverUrl($mailbox)
+
+$view = New-Object 傍ypeName `
+Microsoft.Exchange.WebServices.Data.ItemView `
+-ArgumentList 100
+
+$schema = [Microsoft.Exchange.WebServices.Data.ItemSchema]
+
+$propertyset = New-Object 傍ypeName `
+Microsoft.Exchange.WebServices.Data.PropertySet (
+  $schema::IdOnly
+)
+
+$view.PropertySet = $propertyset
+
+$query = $query
+
+$items = $svc.FindItems($folder,$query,$view)
+
+$items | Foreach-Object{
+
+  $headerview = New-Object 傍ypeName `
+  Microsoft.Exchange.WebServices.Data.ItemView `
+  -ArgumentList 1
+
+  $headerprops = New-Object 傍ypeName `
+    Microsoft.Exchange.WebServices.Data.PropertySet (
+    $schema::InternetMessageHeaders
+  )
+
+  $headerview.PropertySet = $headerprops
+
+  $message = [Microsoft.Exchange.WebServices.Data.Item]::Bind(
+    $svc, $_.Id, $headerview.PropertySet
+  )
+
+  $message.InternetMessageHeaders
+}
+
+
+.\GetMessageHeaders.ps1 -query "Subject:'Financial report FY17'" `
+-mailbox lsanders@testlabs.se `
+-folder Inbox

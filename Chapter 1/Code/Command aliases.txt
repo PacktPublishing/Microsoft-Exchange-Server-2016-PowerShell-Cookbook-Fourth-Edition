@@ -1,0 +1,12 @@
+Example 1:
+
+Get-Alias
+
+New-Alias -Name wh -Value Write-Host
+wh "Testing alias"
+
+New-Alias -Name list -Value Get-ChildItem
+list –Path "C:\Scripts"
+
+New-Alias -Name npp -Value "C:\Program Files (x86)\Notepad++\notepad++.exe"
+npp

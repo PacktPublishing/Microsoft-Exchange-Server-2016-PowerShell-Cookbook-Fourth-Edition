@@ -1,0 +1,32 @@
+Example 1:
+
+Test-FederationTrustCertificate
+
+
+Example 2:
+
+Get-FederationTrust
+
+Test-FederationTrust
+Use the Test-FederationTrust cmdlet to verify that the federation trust is properly configured and functioning as expected.
+& $env:ExchangeInstallPath\Scripts\New-TestCasConnectivityUser.ps1
+
+
+Example 3:
+
+$name = (Get-OrganizationRelationship).Name
+
+Test-OrganizationRelationship -UserIdentity pdickson@testlabs.se -Identity $name
+
+Get-OrganizationRelationship | Test-OrganizationRelationship -UserIdentity pdickson@testlabs.se
+
+
+Example 4:
+
+Test-OAuthConnectivity
+
+Test-OAuthConnectivity -Service EWS -TargetUri https://mail.testlabs.se/ews/ -Mailbox "pdickson"
+
+Test-OAuthConnectivity -Service AutoD -TargetUri https://mail.testlabs.se/autodiscover/autodiscover.xml -Mailbox "pdickson"
+
+Test-OAuthConnectivity -Service Generic -TargetUri https://mail.testlabs.se/ -Mailbox "pdickson"

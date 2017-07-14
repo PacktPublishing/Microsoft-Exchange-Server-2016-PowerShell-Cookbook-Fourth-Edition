@@ -1,0 +1,31 @@
+Example 1:
+
+Get-MailboxAutoReplyConfiguration dave
+
+
+Example 2:
+
+Set-MailboxAutoReplyConfiguration dave -AutoReplyState Disabled
+
+
+Example 3:
+
+Set-MailboxAutoReplyConfiguration dave `
+-AutoReplyState Scheduled `
+-StartTime 3/25/2017 `
+-EndTime 4/3/2017 `
+-ExternalMessage "I will be out of the office this week"
+
+
+Example 4:
+
+Set-MailboxAutoReplyConfiguration dave `
+-ExternalMessage (Get-Content C:\Scripts\oof.html)
+
+
+Example 5:
+
+Get-Mailbox –ResultSize Unlimited | 
+  Get-MailboxAutoReplyConfiguration | 
+    ?{$_.AutoReplyState -ne "Disabled"} | 
+	  Select Identity,AutoReplyState,StartTime,EndTime

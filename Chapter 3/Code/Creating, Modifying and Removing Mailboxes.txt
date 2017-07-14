@@ -1,0 +1,73 @@
+Example 1:
+
+$password = ConvertTo-SecureString -AsPlainText P@ssw0rd -Force
+
+New-Mailbox -UserPrincipalName dave@testlabs.se `
+-Alias dave `
+-Database DB1 `
+-Name 'Dave Jones' `
+-OrganizationalUnit Sales `
+-Password $password `
+-FirstName Dave `
+-LastName Jones `
+-DisplayName ‘Dave Jones’
+
+Set-Mailbox -Identity dave `
+-UseDatabaseQuotaDefaults $false `
+-ProhibitSendReceiveQuota 5GB `
+-IssueWarningQuota 4GB
+
+Disable-Mailbox -Identity dave -Confirm:$false
+
+
+Example 2:
+
+New-Mailbox -UserPrincipalName dave@testlabs.se `
+-Alias dave `
+-Database DB1 `
+-Name 'Dave Jones' `
+-OrganizationalUnit Sales `
+-Password (ConvertTo-SecureString -AsPlainText P@ssw0rd -Force) `
+-FirstName Dave `
+-LastName Jones `
+-DisplayName ‘Dave Jones’
+
+
+Example 3:
+
+Enable-Mailbox steve -Database DB1
+
+
+Example 4:
+
+Get-User -RecipientTypeDetails User | 
+  Enable-Mailbox -Database DB1
+
+  
+Example 5:
+
+Get-Mailbox -OrganizationalUnit testlabs.se/sales | 
+  Set-Mailbox -UseDatabaseQuotaDefaults $false `
+  -ProhibitSendReceiveQuota 5GB `
+  -IssueWarningQuota 4GB
+
+  
+Example 6:
+
+Remove-Mailbox -Identity dave -Confirm:$false
+
+
+Example 7:
+
+$pass = Read-Host "Enter Password" -AsSecureString
+
+
+Example 8:
+
+New-Mailbox -Name Dave -UserPrincipalName dave@testlabs.se `
+-Password (Get-Credential).password
+
+
+Example 9:
+
+Set-User –Identity dave –Office IT –City Seattle –State Washington

@@ -1,0 +1,196 @@
+###############################################################
+Using Exchange test cmdlets
+
+Get-Command -Verb Test | Where Module -match $env:ComputerName
+
+
+Test-ServiceHealth
+
+
+Test-MAPIConnectivity nuno@testlabs.se
+
+
+Test-OutlookWebServices nuno@testlabs.se -MailboxCredential (Get-Credential)
+
+
+Test-WebServicesConnectivity -ClientAccessServer TLEX1
+
+
+
+Test-ServiceHealth -Server TLEX2
+
+
+
+Test-MAPIConnectivity | FT Server, Database, Mailbox, Result, Error
+
+
+
+Test-OutlookWebServices nuno.mota@adia.ae -MailboxCredential $cred | Where {$_.Scenario -eq "AvailabilityService"} | FL
+
+
+
+
+
+
+
+###############################################################
+Using Health Probe  checks
+
+Invoke-WebRequest -Uri "https://mail.testlabs.se/owa/healthcheck.htm"
+
+
+Invoke-WebRequest -Uri "https://mail.testlabs.se/mapi/healthcheck.htm"
+
+
+
+
+Function Test-URL () {  
+    Param ($url) 
+  
+    Try {
+        $web = Invoke-WebRequest -Uri "$url/healthcheck.htm" -ErrorAction Stop
+    } Catch {
+        Return "page not available"
+    }
+
+    If ($web.StatusCode -eq "200") {Return "OK"} 
+    Else {Return $web.StatusCode} 
+}
+
+
+
+
+Test-URL "https://autodiscover.domain.com/autodiscover"
+
+
+Invoke-WebRequest -Uri "https://tlex1.testlabs.se/owa/healthcheck.htm"
+
+
+
+[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$True}
+$wc = New-Object System.Net.WebClient
+$wc.DownloadString("https://tlex1.testlabs.se/owa/healthcheck.htm")
+
+
+
+Set-ServerComponentState <Server> -Component OwaProxy –Requester Maintenance –State Inactive
+
+
+
+
+
+
+###############################################################
+Checking  server health and health sets 
+
+Get-ServerHealth TLEX1
+
+Get-HealthReport TLEX1
+
+
+Get-MonitoringItemIdentity MailboxSpace -Server TLEX1 | FL Identity, ItemType, Name
+
+
+Get-ServerHealth -HealthSet MailboxSpace -Server TLEX1 | Sort AlertValue | FT Name, AlertValue -Auto
+
+
+
+
+$monitors = (Get-WinEvent -ComputerName TLEX1 -LogName Microsoft-Exchange-ActiveMonitoring/MonitorDefinition | ForEach {[XML] $_.toXml()}).Event.UserData.EventXml
+
+($monitors | Where {$_.Name -eq “StorageLogicalDriveSpaceMonitor”}).SampleMask
+
+
+
+(Get-WinEvent -ComputerName TLEX1 -LogName Microsoft-Exchange-ActiveMonitoring/ProbeResult -FilterXPath "*[UserData[EventXML[ResultName='MSExchangeDagMgmt/EdbAndLogVolSpace/DB1']]]" | ForEach {[XML] $_.toXml()}).Event.UserData.EventXml | Sort ExecutionEndTime -Descending | Select Error -First 1
+
+
+
+Add-GlobalMonitoringOverride MailboxSpace\StorageLogicalDriveSpaceMonitor -Item Monitor -PropertyName MonitoringThreshold -PropertyValue 30 -Duration 180.00:00:00
+
+
+
+Get-ExchangeServer | ForEach {Get-HealthReport -Server $_.Name | Where {$_.AlertValue -ne "Healthy" -and $_.AlertValue -ne "Disabled"}}
+
+
+
+
+$body = Get-ExchangeServer | ForEach {
+  Get-HealthReport -Server $_.Name | Where {$_.AlertValue -ne "Healthy" -and $_.AlertValue -ne "Disabled"}
+}
+
+If ($body) {
+Send-MailMessage -From admin@domain.com -To admin@domain.com -Subject “HealthSetReport” -Body ($body | Out-String ) -SmtpServer mail.domain.com
+}
+
+
+
+
+
+
+
+###############################################################
+Monitoring transaction logs
+
+[Array] $DBcol = @()
+[Bool] $alert = $False
+[Int] $logThreshold = 3000
+ 
+Get-MailboxDatabase -Status | Where {$_.Mounted} | ForEach {
+    $DBobj = New-Object PSObject -Property @{
+        Name    = $_.Name
+        Path    = $_.LogFolderPath
+        Server    = ($_.MountedOnServer).Split(".")[0]
+        Logs    = (Get-ChildItem "\\$($_.MountedOnServer)\$($_.LogFolderPath -replace ":", "$")").Count
+    }
+ 
+    If ($DBobj.Logs -gt $logThreshold) {$alert = $True}
+    $DBcol += $DBobj
+}
+
+If ($alert) {
+    Send-MailMessage -From exchange.alert@domain.com -to admin@domain.com -Subject "High number of transaction logs!" -Priority High -Body $($DBcol | Sort Name | FT Name, Server, Logs -Auto | Out-String) -SmtpServer mail.domain.com
+}
+
+$DBcol | Sort Name | FT Name, Server, Logs -Auto
+
+
+
+
+
+
+
+###############################################################
+Monitoring  disk space
+
+Get-MailboxDatabaseCopyStatus "DB01\TLEX1" | Select DiskTotalSpace, DiskFreeSpace, DiskFreeSpacePercent
+
+
+Get-MailboxDatabase | Get-MailboxDatabaseCopyStatus | Sort Name | FT Name, DiskTotalSpace, DiskFreeSpace -AutoSize
+
+
+[Array] $DBcol = @()
+Get-MailboxDatabase -Status | ? {$_.Mounted} | % {
+    $DBobj = New-Object PSObject -Property @{
+        Name    = $_.Name
+        Server    = ($_.MountedOnServer).Split(".")[0]
+        Size      = (Get-MailboxDatabase $_.Name -Status).DatabaseSize.ToGB()
+        FreeSpace = (Get-MailboxDatabaseCopyStatus "$($_.Name)\$(($_.MountedOnServer).Split(".")[0])").DiskFreeSpace.ToGB()
+    }
+ 
+    $DBcol += $DBobj
+}
+$DBcol | Sort Name | FT -Auto
+
+
+
+
+
+
+###############################################################
+Checking database redundancy
+
+Get-MailboxDatabaseRedundancy DB01 | FL
+
+
+Get-MailboxDatabaseRedundancy -DatabaseAvailabilityGroup DAG1

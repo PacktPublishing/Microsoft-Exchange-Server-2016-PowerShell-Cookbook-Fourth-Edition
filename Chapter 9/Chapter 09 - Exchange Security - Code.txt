@@ -1,0 +1,488 @@
+###############################################################
+Granting users full access permissions to mail-boxes
+
+Add-MailboxPermission dsmith '
+-User hlawson '
+-AccessRights FullAccess '
+-InheritanceType All
+
+
+Remove-MailboxPermission dsmith '
+-User hlawson '
+-AccessRights FullAccess '
+-Confirm:$False
+
+
+
+Add-MailboxPermission dsmith '
+-User "IT Help Desk" '
+-AccessRights FullAccess
+
+
+
+Get-Mailbox -ResultSize Unlimited -RecipientTypeDetails UserMailbox | '
+Add-MailboxPermission -User "IT Help Desk" '
+-InheritanceType All
+-AccessRights FullAccess
+-AutoMapping $False
+
+
+
+Add-ADPermission DB01 '
+-User svcBackup '
+-AccessRights GenericAll
+
+
+
+Get-MailboxDatabase | '
+Add-ADPermission –User svcBackup '
+-AccessRights GenericAll
+
+
+
+
+
+
+
+
+###############################################################
+Finding users with full access to mailboxes
+
+Get-MailboxPermission admin | `
+Where-Object {$_.AccessRights -match "FullAccess"}
+
+
+Get-MailboxPermission admin | 
+Where-Object {
+  ($_.AccessRights -match "FullAccess") '
+  -and ($_.User -notmatch "SELF") '
+  -and ($_.IsInherited -eq $False)
+} | FT User, AccessRights, Inherited -AutoSize
+
+
+
+ForEach ($mailbox in Get-Mailbox -ResultSize Unlimited) {
+  Get-MailboxPermission $mailbox | 
+  Where-Object {
+    ($_.AccessRights -match "FullAccess") '
+    -and ($_.User -notmatch "SELF") '
+    -and ($_.IsInherited -eq $False)
+  }
+}
+
+
+
+
+
+###############################################################
+Sending email messages as another user or group
+
+Add-ADPermission "Frank Howe" '
+-User "Eric Cook" '
+-AccessRights ExtendedRight '
+-ExtendedRights “Send As”
+
+
+Get-Mailbox fhowe | '
+Add-ADPermission -User ecook '
+-AccessRights ExtendedRight '
+-ExtendedRights “Send As”
+
+
+
+Get-Mailbox -OrganizationalUnit contoso.com/Sales | '
+Add-ADPermission -User ecook '
+-AccessRights ExtendedRight '
+-ExtendedRights “Send As”
+
+
+Remove-ADPermission "Frank Howe" '
+-User ecook '
+-ExtendedRights “Send As” '
+-Confirm:$False
+
+
+Add-ADPermission Marketing '
+-User ecook '
+-AccessRights ExtendedRight '
+-ExtendedRights “Send As”
+
+
+Add-ADPermission -User ecook '
+-AccessRights ExtendedRight '
+-ExtendedRights “Send As”
+
+
+Get-ADPermission "Jonas" | `
+Where-Object { `
+  ($_.ExtendedRights -match "Send-As") `
+  -and ($_.User -notmatch "SELF") `
+  -and ($_.IsInherited -eq $False)} | `
+FT User, ExtendedRights
+
+
+Set-Mailbox fhowe -GrantSendOnBehalfTo ecook
+
+
+Set-Mailbox fhowe –GrantSendOnBehalfTo @{add=”auditor”, “admin”}
+
+
+
+
+
+###############################################################
+Throttling client connections
+
+New-ThrottlingPolicy -Name “High Connection Mailbox” -OwaMaxConcurrency 25 –EasMaxConcurrency 25
+
+
+Set-ThrottlingPolicyAssociation John -ThrottlingPolicy “High Connection Mailbox”
+
+
+Set-Mailbox John -ThrottlingPolicy “High Connection Mailbox”
+
+
+New-ThrottlingPolicy -Name “Limit Max Cmdlets” -PowerShellMaxCmdlets 10 -PowerShellMaxCmdletsTimePeriod 2
+
+
+New-ThrottlingPolicy -Name “Limit Recipient Rate” -RecipientRateLimit 1000 -ThrottlingPolicyScope Organization
+
+
+
+
+
+
+###############################################################
+Working with Role Based Access Control
+
+Add-RoleGroupMember "Server Management" -Member bwelch
+
+
+Get-ManagementRoleAssignment -RoleAssignee 'Server Management' | 
+Select Role
+
+
+New-ManagementRoleAssignment -Role 'Mailbox Import Export' '
+-User administrator
+
+
+
+Get-RoleAssignmentPolicy "Default Role Assignment Policy" | 
+Format-List AssignedRoles
+
+
+
+
+
+
+###############################################################
+Creating a custom RBAC role for administrators
+
+New-ManagementRole -Name "Employee Recipient Creation" '
+-Parent "Mail Recipient Creation"
+
+
+Get-ManagementRoleEntry "Employee Recipient Creation\*" | `
+Where-Object {$_.name -like "remove-*"} | `
+Remove-ManagementRoleEntry -Confirm:$False
+
+
+New-ManagementScope -Name Employees '
+-RecipientRoot contoso.com/Employees '
+-RecipientRestrictionFilter {
+  (RecipientType -eq "UserMailbox") -or 
+  (RecipientType -eq "MailUser") -or 
+  (RecipientType -eq "MailContact")
+}
+
+
+New-RoleGroup -Name Support '
+-Roles "Employee Recipient Creation" '
+-CustomRecipientWriteScope Employees '
+-Members bjacobs, dgreen, jgordon
+
+
+
+
+
+###############################################################
+Creating a custom RBAC role for end users
+
+New-ManagementRole -Name MyContactInfo '
+-Parent MyContactInformation
+
+
+$parameters = Get-ManagementRoleEntry "MyContactInfo\Set-User" | Select-Object -ExpandProperty parameters
+
+
+$parameters = $parameters | Where-Object{ `
+  ($_ -ne "Phone") -and '
+  ($_ -ne "MobilePhone") -and '
+  ($_ -ne "Fax")
+}
+
+
+Set-ManagementRoleEntry "MyContactInfo\Set-User" '
+-Parameters $parameters
+
+
+
+Remove-ManagementRoleAssignment '
+"MyContactInformation-Default Role Assignment Policy" '
+-Confirm:$False
+
+
+
+New-ManagementRoleAssignment -Role MyContactInfo -Policy "Default Role Assignment Policy"
+
+
+
+New-RoleAssignmentPolicy -Name MyCustomPolicy '
+-Roles MyDistributionGroupMembership, '
+MyBaseOptions, MyTeamMailboxes, MyTextMessaging, '
+MyVoiceMail, MyContactInfo
+
+
+
+Set-Mailbox "Ramon Shaffer" '
+-RoleAssignmentPolicy MyCustomPolicy
+
+
+Set-RoleAssignmentPolicy MyCustomPolicy -IsDefault
+
+
+
+Get-Mailbox -ResultSize Unlimited | '
+Set-Mailbox -RoleAssignmentPolicy MyCustomPolicy
+
+
+
+
+
+
+###############################################################
+Troubleshooting RBAC
+
+
+Get-ManagementRoleAssignment -GetEffectiveUsers | '
+Where-Object {$_.EffectiveUserName -eq 'sysadmin'}
+
+
+Get-ManagementRoleAssignment -Role 'Legal Hold' '
+-GetEffectiveUsers
+
+
+Get-ManagementRoleAssignment -WritableRecipient djones '
+-GetEffectiveUsers | 
+Where-Object {$_.EffectiveUserName -eq 'sysadmin'}
+
+
+
+Get-RoleGroup 'Organization Management' | Get-RoleGroupMember
+
+
+ForEach ($rg in Get-RoleGroup) {
+  Get-RoleGroupMember $rg | 
+  Select-Object Name, @{n="RoleGroup";e={$rg.Name}}
+}
+
+
+
+(Get-RbacDiagnosticInfo -UserName nuno).CombinedCmdlets | Where {$_.Na
+me -like "Set-*"} | Select Name, Parameters
+
+
+
+((Get-RbacDiagnosticInfo -UserName nuno).CombinedCmdlets | Where {$_.Name -eq "Set-CASMailbox"}).Parameters
+
+
+
+(Get-RbacDiagnosticInfo -UserName nuno).AllRoleEntries | Where {$_ -match "Set-CASMailbox"}
+
+
+
+
+
+
+
+###############################################################
+Generating a certificate request
+
+$cert = New-ExchangeCertificate -GenerateRequest '
+-SubjectName "c=US, o=Contoso, cn=mail.contoso.com" '
+-DomainName autodiscover.contoso.com, mail.contoso.com '
+-PrivateKeyExportable $True
+
+
+$cert | Out-File C:\cert_request.txt
+
+
+
+
+
+
+###############################################################
+Installing certificates and enabling services
+
+$certificate = Get-Content -Path C:\certnew.cer '
+-Encoding Byte -ReadCount 0
+
+
+Import-ExchangeCertificate -FileData $certificate
+
+
+Get-ExchangeCertificate -DomainName mail.contoso.com | '
+Enable-ExchangeCertificate -Services IIS, SMTP
+
+
+
+Enable-ExchangeCertificate '
+-Thumbprint 9C5CBB122ECD7338A2076127D2216F518CF1B9B7 '
+-Services IIS, SMTP
+
+
+
+
+$password = ConvertTo-SecureString -String P@ssword '
+-AsPlainText -Force
+
+
+$cert = Get-ExchangeCertificate '
+-DomainName mail.contoso.com -Server TLEX01 | '
+Export-ExchangeCertificate –BinaryEncoded:$True '
+-Password $password
+
+
+Import-ExchangeCertificate -FileData $cert.FileData '
+-Password $password -Server TLEX02
+
+
+Get-ExchangeCertificate '
+-DomainName mail.contoso.com -Server TLEX02 | '
+Enable-ExchangeCertificate -Services IIS, SMTP
+
+
+
+
+
+Function Deploy-ExchangeCertificate {
+  param (
+    $SourceServer,
+    $Thumbprint,
+    $TargetServer,
+    $Password,
+    $Services
+  )
+  $password = ConvertTo-SecureString -String $Password '
+  -AsPlainText   -Force
+  $cert = Get-ExchangeCertificate -Thumbprint $Thumbprint '
+  -Server $SourceServer | 
+    Export-ExchangeCertificate –BinaryEncoded:$True '
+    -Password $Password
+  ForEach ($Server in $TargetServer) {
+    Import-ExchangeCertificate -FileData $cert.FileData '
+    -Password $Password     -Server $Server
+    Enable-ExchangeCertificate -Thumbprint $Thumbprint '
+    -Server $Server     -Services $Services '
+    -Confirm:$False     -Force
+}
+
+
+
+Deploy-ExchangeCertificate -SourceServer TLEX01 '
+-TargetServer TLEX02,TLEX03,TLEX04,TLEX05,TLEX06 '
+-Thumbprint DE4382508E325D27D2D48033509EE5F9C621A07B '
+-Services IIS,SMTP '
+-Password P@ssw0rd
+
+
+
+
+$password = ConvertTo-SecureString '
+-String P@ssword -AsPlainText -Force
+$file = Get-ExchangeCertificate '
+-Thumbprint DE4382508E325D27D2D48033509EE5F9C621A07B –Server '
+TLEX01 | Export-ExchangeCertificate –BinaryEncoded:$True '
+–Password $password
+Set-Content -Path C:\cert.pfx -Value $file.FileData -Encoding Byte
+
+
+$password = ConvertTo-SecureString '
+-String P@ssword -AsPlainText -Force
+$filedata = Get-Content -Path C:\cert.pfx -Encoding Byte -ReadCount 0
+Import-ExchangeCertificate -FileData ([Byte[]]$filedata) '
+-Password $password -Server TLEX02
+
+
+
+
+
+
+
+###############################################################
+Configuring Domain Security
+
+Set-TransportConfig -TLSSendDomainSecureList contoso.com
+Set-TransportConfig -TLSReceiveDomainSecureList fabrikam.com
+
+
+Set-TransportConfig -TLSSendDomainSecureList fabrikam.com
+Set-TransportConfig -TLSReceiveDomainSecureList contoso.com
+
+
+New-SendConnector -Partner -Name “To Fabrikam” -AddressSpaces fabrikam.com –Fqdn mail.contoso.com -ProtocolLoggingLevel Verbose –FrontendProxyEnabled $True
+
+
+Get-SendConnector “To Fabrikam” | Select Name, DNSRoutingEnabled, FQDN,DomainSecureEnabled
+
+
+Set-SendConnector “To Fabrikam” –DomainSecureEnabled $True
+
+
+New-ReceiveConnector –Partner -Name “From Fabrikam” –TransportRole FrontEndTransport -Bindings 0.0.0.0:25 -RemoteIPRanges 10.10.1.1 -Fqdn mail.contoso.com –ProtocolLoggingLevel Verbose
+
+
+Get-ReceiveConnector “<server>\From Fabrikam” | Select AuthMechanism, DomainSecureEnabled
+
+
+
+
+
+
+
+###############################################################
+Configuring S/MIME for OWA
+
+Get-SMIMEConfig
+
+
+Set-SmimeConfig -OWAAllowUserChoiceOfSigningCertificate $True '
+-OWAEncryptionAlgorithms 6602:128
+
+
+
+
+Get-ChildItem –Path '
+"Cert:\LocalMachine\CA\175AC872CA60AAD30FBBC66228A706CDA8E4B787" '
+| Export-Certificate -Type SST '
+-FilePath C:\Scripts\SMIME\testlabsca.sst
+Set-SmimeConfig -SMIMECertificateIssuingCA (Get-Content 
+C:\Scripts\SMIME\testlabsca.sst -Encoding Byte)
+
+
+
+
+
+
+###############################################################
+Configuring   Windows Defender Exclusions
+
+Add-MpPreference -ExclusionPath $ExInstall
+Add-MpPreference -ExclusionProcess "$($ExInstall)Bin\MSExchangeTransport.exe"
+Add-MpPreference -ExclusionExtension “.chk”, “.edb”, “.log”, “.que”
+
+
+Get-MpComputerStatus
+
+
+Set-MpPreference -DisableRealtimeMonitoring $True

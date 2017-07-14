@@ -1,0 +1,8 @@
+Example 1:
+
+Set-Mailbox dave –HiddenFromAddressListsEnabled $true
+
+
+Example 2:
+
+Get-Mailbox -Filter {HiddenFromAddressListsEnabled -eq $true}

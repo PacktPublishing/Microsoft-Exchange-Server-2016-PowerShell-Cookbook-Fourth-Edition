@@ -1,0 +1,27 @@
+Example 1:
+
+Set-OrganizationConfig -DistributionGroupNamingPolicy `
+"DL_<GroupName>"
+
+
+Example 2:
+
+Set-OrganizationConfig -DistributionGroupNamingPolicy `
+"<Department>_<GroupName>_<StateOrProvince>"
+
+
+Example 3:
+
+Set-OrganizationConfig `
+-DistributionGroupNameBlockedWordsList badword1,badword2
+
+
+Example 4:
+
+Set-OrganizationConfig `
+-DistributionGroupDefaultOU "contoso.com/Test"
+
+
+Example 5:
+
+New-DistributionGroup -Name Accounting -IgnoreNamingPolicy

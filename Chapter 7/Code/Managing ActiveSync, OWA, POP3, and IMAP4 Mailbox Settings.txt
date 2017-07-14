@@ -1,0 +1,53 @@
+Example 1:
+
+Set-CasMailbox -Identity 'Charlene Munoz' `
+-OWAEnabled $false `
+-ActiveSyncEnabled $false `
+-PopEnabled $false `
+-ImapEnabled $false
+
+
+Example 2:
+
+Get-Mailbox -Filter {Office -eq 'Sales'} | 
+  Set-CasMailbox -OWAEnabled $false `
+  -ActiveSyncEnabled $false `
+  -PopEnabled $true `
+  -ImapEnabled $true
+
+  
+Example 3:
+
+Get-Mailbox -RecipientTypeDetails UserMailbox | 
+  Set-CasMailbox -OWAEnabled $true `
+  -ActiveSyncEnabled $false `
+  -PopEnabled $false `
+  -ImapEnabled $false `
+  -MAPIEnabled $false
+
+  
+Example 4:
+
+param(
+  $name,
+  $password,
+  $upn,
+  $alias,
+  $first,
+  $last
+)
+
+$pass = ConvertTo-SecureString -AsPlainText $password -Force
+
+$mailbox = New-Mailbox -UserPrincipalName $upn `
+-Alias $alias `
+-Name "$first $last" `
+-Password $pass `
+-FirstName $first `
+-LastName $last
+
+Set-CasMailbox -Identity $mailbox `
+-OWAEnabled $false `
+-ActiveSyncEnabled $false `
+-PopEnabled $false `
+-ImapEnabled $false

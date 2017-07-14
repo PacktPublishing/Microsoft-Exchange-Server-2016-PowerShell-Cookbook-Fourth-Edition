@@ -1,0 +1,51 @@
+Example 1:
+
+Get-Counter '\\tlex01\ASP.NET Apps v4.0.30319(_LM_W3SVC_1_ROOT_OWA)\Requests Executing'
+
+Get-Counter '\\tlex01\MSExchange MapiHttp Emsmdb\User Count'
+
+Get-Counter '\\tlex01\MSExchange RpcClientAccess\User Count'
+
+
+Example 2:
+
+Get-Counter 'ASP.NET Apps v4.0.30319(_LM_W3SVC_1_ROOT_OWA)\Requests Executing' `
+-ComputerName tlex01,tlex02
+
+
+Example 3:
+
+Get-Counter -ListSet *owa* -ComputerName tlex01 | 
+  Select-Object -expand paths
+
+  
+Example 4:
+
+function Get-ActiveUsers {
+  [CmdletBinding()]
+  param(
+    [Parameter(Position=0, 
+      ValueFromPipelineByPropertyName=$true, 
+      Mandatory=$true)]
+    [string[]]
+    $Name
+  )
+
+  process {
+    $Name | %{
+      $RPC = Get-Counter "\MSExchange RpcClientAccess\User Count" -ComputerName $_
+	  
+	  $MAPI = Get-Counter "\MSExchange MapiHttp Emsmdb\User Count" -ComputerName $_
+      
+      #$OWA = Get-Counter "\MSExchange OWA\Current Unique Users" -ComputerName $_
+	  $OWA = Get-Counter "\ASP.NET Apps v4.0.30319(_LM_W3SVC_1_ROOT_OWA)\Requests Executing"
+      
+      New-Object PSObject -Property @{
+        Server = $_
+        'MAPI users' = $MAPI.CounterSamples[0].CookedValue
+		'HTTP/RPC users' = $RPC.CounterSamples[0].CookedValue
+        'Outlook Web App users' = $OWA.CounterSamples[0].CookedValue
+      }
+    }
+  }
+}

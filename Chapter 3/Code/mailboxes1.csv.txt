@@ -1,0 +1,6 @@
+Name,Alias,UserPrincipalName,OrganizationalUnit
+Pete Dickson,pdickson,Pdickson@contoso.com,Sales
+Emanuel Moss,emoss,Emoss@contoso.com,Sales
+Lee Sanders,lsanders,Lsanders@contoso.com,Sales
+Arlene Finley,afinley,Afinley@contoso.com,Sales
+Ruben Mcleod,rmcleod,Rmcleod@contoso.com,Sales

@@ -1,0 +1,624 @@
+###############################################################
+Configuring transport limits
+
+Set-Mailbox dsmith `
+-MaxSendSize 10mb `
+-MaxReceiveSize 10mb `
+-RecipientLimits 100
+
+
+Get-Mailbox dsmith | `
+Select MaxSendSize, MaxReceiveSize, RecipientLimits
+
+
+Get-Mailbox –ResultSize Unlimited `
+-OrganizationalUnit contoso.com/Marketing | `
+Set-Mailbox -MaxSendSize 10mb `
+-MaxReceiveSize 20mb `
+-RecipientLimits 100
+
+
+Set-TransportConfig -MaxReceiveSize 10mb `
+-MaxRecipientEnvelopeLimit 1000 `
+-MaxSendSize 10mb
+
+
+Set-ReceiveConnector EX1\Internet `
+-MaxMessageSize 20mb `
+-MaxRecipientsPerMessage 100
+
+
+Get-ReceiveConnector *\Internet | `
+Set-ReceiveConnector -MaxMessageSize 20mb `
+-MaxRecipientsPerMessage 100
+
+
+Set-SendConnector Internet -MaxMessageSize 50mb
+
+
+
+
+
+
+
+###############################################################
+Managing connectors
+
+New-SendConnector -Name Internet `
+-Usage Internet `
+-AddressSpaces 'SMTP:*;1' `
+-IsScopedConnector $false `
+-DNSRoutingEnabled $false `
+-SmartHosts smtp.contoso.com `
+-SmartHostAuthMechanism None `
+-UseExternalDNSServersEnabled $False `
+-SourceTransportServers EX1
+
+
+New-ReceiveConnector -Name 'Inbound from DMZ' `
+-Usage 'Custom' `
+-Bindings '192.168.1.245:25' `
+-Fqdn mail.contoso.com `
+-RemoteIPRanges '172.16.23.0/24' `
+-PermissionGroups AnonymousUsers `
+-Server EX2
+
+
+Set-SendConnector -Identity Internet `
+-AddressSpaces 'SMTP:*.litwareinc.com;5',
+'SMTP:corp.contoso.com;10'
+
+
+Get-SendConnector -Identity Internet | FL
+
+
+Set-SendConnector Internet -Enabled $False
+
+
+Remove-SendConnector Internet -Confirm:$False
+
+
+
+
+Set-ReceiveConnector 'EX2\Inbound from DMZ' `
+-Banner '220 SMTP OK' `
+-MaxInboundConnection 2500 `
+-ConnectionInactivityTimeout '00:02:30'
+
+
+Get-ReceiveConnector 'EX2\Inbound from DMZ' | FL
+
+
+Set-ReceiveConnector 'EX2\Inbound from DMZ' `
+-Enabled $False
+
+
+Remove-ReceiveConnector 'EX2\Inbound from DMZ' `
+-Confirm:$false
+
+
+
+
+
+
+###############################################################
+Allowing application servers to relay emails
+
+New-ReceiveConnector -Name Relay `
+-Usage Custom `
+-Bindings '192.168.1.245:25' `
+-Fqdn mail.contoso.com `
+-RemoteIPRanges 192.168.1.110 `
+-Server EX1 `
+-PermissionGroups ExchangeServers `
+-AuthMechanism TLS, ExternalAuthoritative
+
+
+New-ReceiveConnector -Name Relay `
+-Usage Custom `
+-Bindings '192.168.1.245:25' `
+-Fqdn mail.contoso.com `
+-RemoteIPRanges 192.168.1.110 `
+-Server EX1 `
+-PermissionGroups AnonymousUsers
+
+
+
+Get-ReceiveConnector EX1\Relay | 
+Add-ADPermission -User "NT AUTHORITY\ANONYMOUS LOGON" `
+-ExtendedRights ms-Exch-SMTP-Accept-Any-Recipient
+
+
+
+Set-ContentFilterConfig –BypassedSenders sending-user@contoso.com
+Set-ContentFilterConfig –BypassedSenderDomains contoso.com
+
+
+
+
+
+###############################################################
+Checking if the IP aAddress is in a receive connector
+
+Param (
+       [Parameter(Mandatory = $True)]
+       [IPAddress] $IP
+)
+
+
+Function CheckRangeForIP {
+    Param (
+           [IPAddress] $IPaddress,
+           [IPAddress] $from,
+           [IPAddress] $to
+    )
+
+    $ip = [System.Net.IPaddress]::Parse($ipAddress).GetAddressBytes()
+    [Array]::Reverse($ip)
+    $ip = [System.BitConverter]::ToUInt32($ip, 0)
+
+    $lowerIP = [System.Net.IPaddress]::Parse($from).GetAddressBytes()
+    [Array]::Reverse($lowerIP)
+    $lowerIP = [System.BitConverter]::ToUInt32($lowerIP, 0)
+
+    $upperIP = [System.Net.IPaddress]::Parse($to).GetAddressBytes()
+    [Array]::Reverse($upperIP)
+    $upperIP = [System.BitConverter]::ToUInt32($upperIP, 0)
+
+    Return $lowerIP -le $ip -and $ip -le $upperIP
+}
+
+
+Get-ReceiveConnector | % {
+       ForEach ($entry in $_.RemoteIPRanges) {
+              If ($entry.LowerBound -eq "::" -or $entry.LowerBound -eq "0.0.0.0") {Continue}
+
+              If (CheckRangeForIP $IP $entry.LowerBound $entry.UpperBound) {
+                     Write-Host $_.Identity -ForegroundColor Green -NoNewline
+                     Write-Host " ($($entry.Expression))"
+              }
+       }
+}
+
+
+./CheckIPRecCon.ps1 –IP 192.168.140.146
+
+
+
+
+
+###############################################################
+Comparing receive connectors
+
+$recCon1 = “EX1\Relay”
+$recCon2 = “EX2\Relay”
+
+$recCon1IPs = (Get-ReceiveConnector $recCon1).RemoteIPRanges
+$recCon2IPs = (Get-ReceiveConnector $recCon2).RemoteIPRanges
+
+$comparison = Compare-Object -ReferenceObject $recCon1IPs -DifferenceObject $recCon2IPs
+$comparison | Select InputObject, @{n="Connector"; e={If ($_.SideIndicator -eq "<=") {$recCon1} ElseIf ($_.SideIndicator -eq "=>") {$recCon2}}}
+
+
+
+
+
+
+
+
+###############################################################
+Adding IP address to receive connectors
+
+$recCon = Get-ReceiveConnector "EX1\Relay"
+$recCon.RemoteIPRanges += "172.28.125.239", "172.28.125.242", "172.28.125.249"
+Set-ReceiveConnector $recCon -RemoteIPRanges $recCon.RemoteIPRanges
+
+
+Set-ReceiveConnector “EX1\Relay” -RemoteIPRanges “172.28.125.239”, “172.28.125.242”, “172.28.125.249”
+
+
+Get-ReceiveConnector "*\Relay" | % {
+      $_.RemoteIPRanges += "10.0.0.99", "10.0.0.100", "10.0.0.101"
+      Set-ReceiveConnector $_ -RemoteIPRanges $_.RemoteIPRanges
+}
+
+
+
+$recCon = Get-ReceiveConnector “EX1\Relay”
+cat .\IPlist.txt | % {$recCon.RemoteIPRanges += $_}
+Set-ReceiveConnector $recCon -RemoteIPRanges $recCon.RemoteIPRanges
+
+
+Get-ReceiveConnector "*\Application Relay" | % {Set-ReceiveConnector $_ -RemoteIPRanges ($_.RemoteIPRanges + (cat .\IPlist.txt) | Sort -Unique)}
+
+
+
+
+
+###############################################################
+Working with custom DSN messages
+
+New-SystemMessage -DSNCode 5.1.1 `
+-Text "The mailbox you tried to send an email message to 
+does not exist. Please contact the Help Desk at extension 
+4112 for assistance." `
+-Internal $True `
+-Language En
+
+
+
+New-SystemMessage -DSNCode 5.1.1 `
+-Text "The mailbox you tried to send an e-mail message to 
+does not exist. Please visit the 
+<a href='http://support.contoso.com'>help desk site</a>
+for assistance" `
+-Internal $True `
+-Language En
+
+
+
+Get-SystemMessage -Original
+
+
+Set-SystemMessage 'en\Internal\5.1.1' `
+-Text "Sorry, but this recipient is no longer available 
+or does not exist."
+
+
+Remove-SystemMessage 'en\Internal\5.1.1' -Confirm:$False
+
+
+New-SystemMessage -QuotaMessageType WarningMailbox `
+-Text "Your mailbox is getting too large. Please 
+delete some messages to free up space or call 
+the help desk at extention 3391." `
+-Language En
+
+
+
+
+
+
+
+###############################################################
+Managing connectivity and protocol logs
+
+Get-TransportService tlex1 | FL ConnectivityLog*
+
+
+Set-TransportService tlex1 `
+-ConnectivityLogMaxAge 45 `
+-ConnectivityLogMaxDirectorySize 5gb
+
+
+Get-TransportService | `
+Set-TransportService -ConnectivityLogMaxAge 45 `
+-ConnectivityLogMaxDirectorySize 5gb
+
+
+
+Set-TransportService tlex1 `
+-SendProtocolLogMaxAge 45 `
+-ReceiveProtocolLogMaxAge 45
+
+
+Set-SendConnector Internet -ProtocolLoggingLevel Verbose
+
+
+Get-ReceiveConnector *\Relay | 
+Set-ReceiveConnector -ProtocolLoggingLevel Verbose
+
+
+Set-TransportService tlex1 `
+-IntraOrgConnectorProtocolLoggingLevel Verbose
+
+
+
+
+$logpath = (Get-TransportService tlex1).ConnectivityLogPath
+
+
+$logs = Get-ChildItem $logpath *.log | ? {$_.LastWriteTime –gt (Get-Date).AddDays(-1)}
+$data = $logs | % {
+  Get-Content $_.Fullname | % {
+    $IsHeaderParsed = $False
+    If ($_ -like '#Fields: *' -and !$IsHeaderParsed) {
+      $_ -replace '^#Fields: '
+      $IsHeaderParsed = $True
+    }
+    Else {
+      $_
+    }
+  } | ConvertFrom-Csv
+}
+$data | Where-Object {$_.description -like '*fail*'}  
+
+
+
+
+
+Set-ImapSettings -Server EX1 -ProtocolLogEnabled $True
+Set-PopSettings -Server EX1 -ProtocolLogEnabled $True
+
+
+Set-PopSettings -Server EX1 -ProtocolLogEnabled $true -LogFileLocation "C:\Pop3Logging" -LogFileRollOverSettings Hourly -LogPerFileSizeQuota 0
+
+
+
+
+
+
+
+###############################################################
+Searching message tracking logs
+
+Get-MessageTrackingLog -Server tlex1 `
+-Start (Get-Date).AddDays(-1) `
+-End (Get-Date) `
+-EventId Send
+
+
+
+Get-TransportService | Get-MessageTrackingLog `
+-ResultSize Unlimited `
+-Start (Get-Date).AddDays(-1) `
+-EventId Send `
+-Sender dmsith@contoso.com
+
+
+
+
+Get-TransportService | Get-MessageTrackingLog `
+-ResultSize Unlimited `
+-Sender sales@litwareinc.com -EventId Receive
+
+
+Get-TransportService | Get-MessageTrackingLog `
+-ResultSize Unlimited `
+–Recipients dave@contoso.com, john@contoso.com
+
+
+(Get-TransportService | Get-MessageTrackingLog `
+-ResultSize Unlimited `
+-Start (Get-Date).AddDays(-2) `
+–Recipients john@contoso.com -EventID DELIVER).Count
+
+
+Get-TransportService | Get-MessageTrackingLog `
+-ResultSize Unlimited `
+-MessageSubject 'Financial Report for Q4'
+
+
+Get-TransportService | Get-MessageTrackingLog | `
+-EventId Receive `
+-Start (Get-Date).AddDays(-7) `
+-ResultSize Unlimited | 
+Where-Object {$_.ConnectorId -like '*\Internet'}
+
+
+
+$results = Get-TransportService | 
+Get-MessageTrackingLog -EventId Receive `
+-Start (Get-Date).AddDays(-7) `
+-ResultSize Unlimited | `
+Where-Object {$_.ConnectorId -like '*\Internet'}
+$results | Measure-Object `
+-Property TotalBytes -Sum | `
+Select-Object @{n="Total Items";e={$_.Count}},
+@{n="Total Item Size (MB)";e={[math]::Round($_.Sum /1mb,2)}}
+
+
+
+
+
+$report = Get-TransportService | 
+Get-MessageTrackingLog -EventId Send `
+-ResultSize Unlimited `
+-Start (Get-Date).AddDays(-30) `
+Where-Object {$_.ConnectorId -eq 'Internet'}
+if($report) {
+  $domains = $report | % {$_.Recipients | % {$_.Split("@")[1]}}
+$domains | Group | Sort Count -Descending | FT Name, Count -AutoSize
+}
+
+
+
+
+
+###############################################################
+Determining which email client sent an email
+
+Get-TransportService | Get-MessageTrackingLog `
+-ResultSize Unlimited -Start 04/04/2017 `
+-Sender dave@contoso.com -Recipients john@contoso.com `
+-MessageSubject “Financial Report” -EventID SUBMIT | `
+Select SourceContext
+
+
+(Get-TransportService | Get-MessageTrackingLog `
+-ResultSize Unlimited -Start (Get-Date).AddHours(-24) `
+-EventID SUBMIT | `
+? {$_.SourceContext -match “OWA”}).Count
+
+
+
+
+###############################################################
+Working with messages in transport queues
+
+Get-Queue -Server tlex1
+
+
+Get-TransportService | Get-Queue
+
+
+Get-TransportService | 
+Get-Queue -Filter {DeliveryType -eq ' SmtpDeliveryToMailbox'}
+
+
+Get-Queue -Server tlex1 -Filter {MessageCount -gt 25}
+
+
+Get-Queue -Server tlex1 -Filter {Status -eq 'Retry'}
+
+
+
+Get-TransportService | `
+Get-Queue -Filter {Status -eq 'Retry'} | `
+Get-Message
+
+
+Get-TransportService | Get-Message `
+-Filter {FromAddress -like '*contoso.com'}
+
+
+
+Get-Message -Server tlex1 -Filter {Subject -eq 'test'} | FL
+
+
+Get-Message -Server tlex1 -Filter {Subject -eq 'test'} | `
+Suspend-Message -Confirm:$False
+
+
+
+Get-Message -Queue tlex1\7 | `
+Suspend-Message -Confirm:$False
+
+
+Get-Message -Server tlex1 -Filter {Subject -eq 'test'} | `
+Resume-Message
+
+
+Get-Message –Queue tlex1\7 | Resume-Message
+
+
+Get-Queue tlex1\7 | Retry-Queue
+
+
+Retry-Queue tlex1\7
+
+
+Get-TransportService | `
+Get-Queue -Filter {Status -eq 'Retry'} | `
+Retry-Queue -Resubmit $True
+
+
+Retry-Queue tlex1\Unreachable -Resubmit $True
+
+
+Get-TransportService | Get-Queue `
+-Filter {DeliveryType -eq 'DnsConnectorDelivery'} | `
+Get-Message | Remove-Message -Confirm:$False
+
+
+Remove-Message -Identity tlex01\10\67095979098886 `
+-WithNDR $False -Confirm:$False
+
+
+
+
+
+
+###############################################################
+Searching anti-spam agent logs
+
+Get-AgentLog | ? {$_.Agent -eq 'Content Filter Agent'}
+
+
+
+cd $exscripts
+.\Install-AntiSpamAgents.ps1
+Restart-Service MSExchangeTransport
+
+
+Get-AgentLog -StartDate (Get-Date).AddDays(-7) -EndDate (Get-Date)
+
+
+Get-AgentLog -StartDate "1/4/2015 9:00 AM" `
+-EndDate "1/9/2015 11:00 PM"
+
+
+
+Get-AgentLog -StartDate (Get-Date).AddDays(-7) `
+-EndDate (Get-Date) | `
+? {$_.Agent -eq 'Sender Filter Agent'}
+
+
+
+
+Get-AgentLog | `
+? {$_.P1FromAddress -or $_.P2FromAddress -eq `'sales@litwareinc.com'}
+
+
+Get-AgentLog | `
+? {$_.P1FromAddress -or $_.P2FromAddress -like '*@litwareinc.com'}
+
+
+
+Get-AgentLog | ? {$_.Recipients -eq 'dsmith@contoso.com}
+
+
+
+
+Get-AgentLog -StartDate (Get-Date).AddDays(-3) | `
+? {$_.Agent -eq 'Content Filter Agent' -and $_.ReasonData -ge 4} | `
+Export-CSV C:\contentfilter.csv -NoType
+
+
+
+Get-AgentLog -Location E:\logs
+
+
+
+
+###############################################################
+Implementing a header firewall
+
+Remove-ADPermission "EdgeSync - Litware to Internet" `
+-User "MS Exchange\Edge Transport Servers" `
+-ExtendedRights Ms-Exch-Send-Headers-Routing `
+-Confirm:$False
+
+
+
+Remove-ADPermission Internet `
+-User "NT Authority\Anonymous Logon" `
+-ExtendedRights Ms-Exch-Send-Headers-Routing `
+-Confirm:$False
+
+
+
+
+###############################################################
+Configuring the Edge Transport server role
+
+Install-WindowsFeature ADLDS
+
+
+Setup.exe /mode:Install /role:EdgeTransport `
+/IAcceptExchangeServerLicenseTerms
+
+
+
+New-EdgeSubscription -FileName C:\Edge.xml
+
+
+
+New-EdgeSubscription -FileData ([byte[]]$(Get-Content `
+-Path "C:\temp\Edge.xml" -Encoding Byte -ReadCount 0)) -Site `
+"Default-First-Site-Name"
+
+
+
+Get-SendConnector | FT -AutoSize
+
+
+
+
+
+Start-EdgeSynchronization
+Test-EdgeSynchronization
+
+
+
+Start-EdgeSynchronization –ForceFullSync

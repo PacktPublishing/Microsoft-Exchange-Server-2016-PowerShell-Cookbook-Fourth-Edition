@@ -1,0 +1,27 @@
+Example 1:
+
+Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\MSExchange OWA\InstantMessaging" -Name ImplementationDLLPath
+
+Get-ExchangeCertificate
+
+New-SettingOverride -Name "IM Override" -Component OwaServer -Section IMSettings -Parameters @("IMServerName=tlfe01.testlabs.se","IMCertificateThumbprint=78000000040BC7C72721CE1FAD000000000004") -Reason "Configure IM"
+
+Get-ExchangeDiagnosticInfo -Process Microsoft.Exchange.Directory.TopologyService -Component VariantConfiguration -Argument Refresh
+
+Get-CsSite | fl DisplayName, SiteID
+
+New-CsTrustedApplicationPool -Identity "mail.testlabs.se" -Registrar tlfe01.testlabs.se -Site "Default Site" -RequiresReplication $false
+
+New-CsTrustedApplication -ApplicationId OutlookWebApp -TrustedApplicationPoolFqdn mail.testlabs.se -Port 5199
+
+Enable-CsTopology
+
+Get-OwaVirtualDirectory | Set-OwaVirtualDirectory -InstantMessagingEnabled $True -InstantMessagingType OCS
+
+Set-OwaMailboxPolicy -Identity "Default" -InstantMessagingEnabled $True - InstantMessagingType "OCS"
+
+Restart-WebAppPool MSExchangeOWAAppPool
+
+[xml]$diag=Get-ExchangeDiagnosticInfo -Server tlex01 -Process Microsoft.Exchange.Directory.TopologyService -Component VariantConfiguration -Argument Config; $diag.Diagnostics.Components.VariantConfiguration.Configuration.OwaServer.IMSettings
+
+[xml]$diag=Get-ExchangeDiagnosticInfo -Server tlex01 -Process MSExchangeMailboxAssistants -Component VariantConfiguration -Argument "Config,Component=OwaServer"; $diag.Diagnostics.Components.VariantConfiguration.Configuration.OwaServer.IMSettings

@@ -1,0 +1,37 @@
+Example 1:
+
+Set-UserPhoto -Identity dave -PictureData `
+([System.IO.File]::ReadAllBytes("C:\Scripts\dave.jpg"))
+
+
+Example 2:
+
+$oab = Get-OfflineAddressBook ‘Default Offline Address Book’
+$oab.ConfiguredAttributes.Remove('thumbnailphoto,indicator')
+
+Set-OfflineAddressBook ‘Default Offline Address Book’ `
+-ConfiguredAttributes $oab.ConfiguredAttributes
+
+
+Example 3:
+
+$oab = Get-OfflineAddressBook ‘Default Offline Address Book’
+$oab.ConfiguredAttributes.Add('thumbnailphoto,value')
+
+Set-OfflineAddressBook ‘Default Offline Address Book’ `
+-ConfiguredAttributes $oab.ConfiguredAttributes
+
+
+Example 4:
+
+Update-OfflineAddressBook 'Default Offline Address Book'
+
+
+Example 5:
+
+$photos = Get-ChildItem \\server01\employeephotos -Filter *.jpg
+
+foreach($i in $photos) {
+  [Byte[]]$data = gc -Path $i.fullname -Encoding Byte -ReadCount 0
+  Set-UserPhoto -Identity $i.basename -PictureData $data -Confirm:$false
+}

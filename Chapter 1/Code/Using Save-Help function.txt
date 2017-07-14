@@ -1,0 +1,6 @@
+Example 1:
+
+Get-Module –Name Microsoft.PowerShell*
+Save-Help –Module Microsoft.PowerShell* –DestinationPath "C:\HelpFiles" 
+Update-Help -SourcePath "C:\HelpFiles" –Force
+Update-Help -SourcePath "\\fileserver\HelpFilesShare" –Force

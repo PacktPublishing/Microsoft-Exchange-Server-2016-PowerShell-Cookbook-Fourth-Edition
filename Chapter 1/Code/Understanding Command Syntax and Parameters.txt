@@ -1,0 +1,43 @@
+Example 1:
+
+Get-Mailbox –Identity testuser
+
+Example 2:
+
+Get-Mailbox testuser
+
+Example 3:
+
+Set-Mailbox testuser –MaxSendSize 50Mb –MaxReceiveSize 50Mb
+
+Example 4:
+
+Set-SendConnector Internet -Enabled $false
+
+Example 5:
+
+Enable-Mailbox testuser -Archive
+
+Example 6:
+
+Get-Mailbox -Database DB2 | Remove-Mailbox -WhatIf
+
+Example 7:
+
+Remove-Mailbox –Identity testuser
+
+Example 8:
+
+Remove-Mailbox testuser -Confirm:$false
+
+Example 9:
+
+Set-User -id testuser –Office Sales
+Get-Mailbox -id t*
+
+Example 10:
+
+Get-Mailbox -OrganizationalUnit 'testlabs.se/Sales Users/Seattle'
+
+$City = 'Seattle'
+Get-Mailbox -OrganizationalUnit "testlabs.se/Sales Users/$City"

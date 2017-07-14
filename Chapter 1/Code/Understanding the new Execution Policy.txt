@@ -1,0 +1,15 @@
+Example 1:
+
+Set-ExecutionPolicy RemoteSigned
+
+Get-ExecutionPolicy –List | Format-Table –AutoSize
+
+Set-ExecutionPolicy AllSigned
+
+Set-ExecutionPolicy –Scope CurrentUser –ExecutionPolicy RemoteSigned
+
+Example 2:
+
+Unblock-File -Path C:\Scripts\HarmlessScript.ps1
+
+Get-ChildItem C:\DownloadFolder | Unblock-File

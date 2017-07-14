@@ -1,0 +1,33 @@
+Example 1:
+
+$i = 1
+do {
+	Write-Host "Value: $i"
+	$i++
+	Start-Sleep -Milliseconds 200
+}
+while ($i -le 20)
+
+Example 2:
+
+$job = Start-Job -ScriptBlock { Set-PSBreakpoint C:\Scripts\MyJob.ps1 -Line 4; C:\Scripts\MyJob.ps1 }
+$job
+Debug-Job $job
+
+Example 3:
+
+$Processes = Get-Process
+$RemoteHosts = @()
+
+foreach ($process in $Processes)
+{
+    if ($process.ProcessName -like "MSExchange*")
+    {
+       $RemoteHosts += $process
+    }
+}
+
+if ($RemoteHosts.Count -gt 0)
+{
+    $RemoteHosts > "C:\Temp\output.txt"
+}

@@ -1,0 +1,22 @@
+Example 1:
+
+Set-AdServerSettings -RecipientViewRoot testlabs.se/sales
+
+Set-AdServerSettings -RecipientViewRoot "OU=sales,DC=testlabs,DC=se"
+
+
+Example 2:
+
+Set-AdServerSettings -ViewEntireForest $true
+
+
+Example 3:
+
+Set-AdServerSettings -RecipientViewRoot corp.testlabs.se
+
+
+Example 4:
+
+Set-AdServerSettings -ViewEntireForest $true `
+-SetPreferredDomainControllers dc1.testlabs.se `
+-PreferredGlobalCatalog dc1.testlabs.se

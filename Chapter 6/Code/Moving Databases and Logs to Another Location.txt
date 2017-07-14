@@ -1,0 +1,34 @@
+Example 1:
+
+Move-DatabasePath -Identity DB1 `
+-EdbFilePath F:\Databases\DB1\Database\DB1.edb `
+-LogFolderPath F:\Databases\DB1\Logs `
+-Confirm:$false `
+-Force
+
+
+Example 2:
+
+Dismount-Database -Identity DB2 -Confirm:$false
+
+Move-DatabasePath -Identity DB2 `
+-EdbFilePath F:\Databases\DB2\Database\DB2.edb `
+-LogFolderPath F:\Databases\DB2\Logs `
+-ConfigurationOnly `
+-Confirm:$false `
+-Force
+
+Mount-Database -Identity DB2
+
+
+Example 3:
+
+foreach($i in Get-MailboxDatabase -Server EX01) {
+  $DBName = $i.Name
+	
+  Move-DatabasePath -Identity $DBName `
+  -EdbFilePath "S:\Databases\$DBName\Database\$DBName.edb" `
+  -LogFolderPath "S:\Databases\$DBName\Logs" `
+  -Confirm:$false `
+  -Force	
+}

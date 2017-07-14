@@ -1,0 +1,43 @@
+Example 1:
+
+Get-Mailbox -Filter {Office -eq 'Sales'}
+
+
+Example 2:
+
+New-DynamicDistributionGroup -Name DL_Accounting `
+-RecipientFilter {
+  (Department -eq 'Accounting') -and 
+  (RecipientType -eq 'UserMailbox')
+}
+
+
+Example 3:
+
+Get-Mailbox | ?{$_.Office -eq ‘Sales’}
+
+
+Example 4:
+
+get-excommand | ?{$_.parameters.keys -eq 'filter'}
+
+
+Example 5:
+
+get-excommand | ?{$_.parameters.keys -eq 'recipientfilter'}
+
+
+Example 6:
+
+New-DynamicDistributionGroup -Name DL_Accounting `
+-IncludedRecipients MailboxUsers `
+-ConditionalDepartment Accounting
+
+
+Example 7:
+
+$office = "sales"
+Get-Mailbox -Filter {Office -eq $office}
+
+$office = "sales"
+Get-Mailbox -Filter "Office -eq '$office'"

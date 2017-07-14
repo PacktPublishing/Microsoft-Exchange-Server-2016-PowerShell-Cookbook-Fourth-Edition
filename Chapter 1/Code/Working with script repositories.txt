@@ -1,0 +1,62 @@
+Example 1:
+
+Import-Module –Name PackageManagement
+
+Get-Command –Module PackageManagement
+
+Find-Package | Out-GridView
+
+Find-Package –Name "AzureAD"
+
+Find-Package –Name "GetUptime"
+
+Install-Package –Name "AzureAD"
+
+Install-Package –Name "GetUptime"
+
+Get-Package -ProviderName PowerShellGet
+
+Example 2:
+
+Uninstall-Package –Name "AzureAD"
+
+Uninstall-Package –Name "GetUptime"
+
+Example 3:
+
+iwr https://chocolatey.org/install.ps1 -UseBasicParsing | iex
+choco upgrade chocolatey
+
+choco install notepadplusplus.install
+choco upgrade notepadplusplus.install 
+choco uninstall notepadplusplus.install 
+
+choco install 7zip.install
+choco upgrade 7zip.install
+choco uninstall 7zip.install
+
+Example 4:
+
+Register-PSRepository -Name MyGet -SourceLocation https://www.myget.org/F/tlpowershell/api/v1 -PublishLocation https://www.myget.org/F/tlpowershell/ -InstallationPolicy Trusted
+
+Find-Package -Source MyGet
+
+Example 5:
+
+New-ModuleManifest -Path C:\Windows\System32\WindowsPowerShell\v1.0\Modules\mailboxes.psd1 -Author "Jonas Andersson" -CompanyName "Testlabs, Inc." -RootModule "mailboxes" -Description "Module that lists mailboxes" -ModuleVersion "1.0"
+
+Import-Module PowerShellGet
+
+$PSGalleryPublishUri = 'https://www.myget.org/F/tlpowershell/api/v2/package'
+
+$PSGallerySourceUri = 'https://www.myget.org/F/tlpowershell/api/v2'
+
+Publish-Module -Name mailboxes -NuGetApiKey a2d5b281-c862-4125-9523-be42ef21f55a -Repository MyGet
+
+Find-Package -Source MyGet
+
+Install-Package –Name "mailboxes" –Source MyGet
+
+Example 6:
+
+Unregister-PSRepository -Name MyGet

@@ -1,0 +1,34 @@
+Example 1:
+
+Set-DistributionGroup -Identity Executives `
+-ModerationEnabled $true `
+-ModeratedBy administrator `
+-SendModerationNotifications Internal
+
+
+Example 2:
+
+Set-Mailbox -Identity dave `
+-ModerationEnabled $true `
+-ModeratedBy administrator `
+-SendModerationNotifications Internal
+
+
+Example 3:
+
+get-excommand | ?{$_.parameters.keys -eq 'ModerationEnabled'}
+
+
+Example 4:
+
+Set-DistributionGroup -Identity Executives `
+-BypassModerationFromSendersOrMembers bob@contoso.com
+
+
+Example 5:
+
+$exclude = Get-Mailbox –Filter {Office –eq 'Seattle'} | 
+  Select-Object -ExpandProperty alias
+
+Set-DistributionGroup -Identity Executives `
+-BypassModerationFromSendersOrMembers $exclude

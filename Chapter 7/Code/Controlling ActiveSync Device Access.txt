@@ -1,0 +1,24 @@
+Example 1:
+
+Set-ActiveSyncOrganizationSettings –DefaultAccessLevel Quarantine `
+–AdminMailRecipients administrator@contoso.com
+
+Set-CASMailbox -Identity dsmith `
+-ActiveSyncAllowedDeviceIDs GDI18O09516R350JE2A3DU4BD9
+
+
+Example 2:
+
+Set-ActiveSyncOrganizationSettings –DefaultAccessLevel Quarantine `
+–AdminMailRecipients helpdesk@contoso.com `
+-UserMailInsert 'Call the Help Desk for immediate assistance'
+
+Get-MobileDevice | 
+  ?{$_.DeviceAccessState -eq 'Quarantined'} | 
+      fl UserDisplayName,DeviceAccessState,DeviceID
+
+	  
+Example 3:
+
+New-ActiveSyncDeviceAccessRule –Characteristic DeviceType `
+–QueryString iPhone –AccessLevel Allow

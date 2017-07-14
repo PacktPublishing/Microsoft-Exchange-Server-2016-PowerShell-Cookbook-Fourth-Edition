@@ -1,0 +1,12 @@
+Example 1:
+
+Test-Path $profile
+
+notepad $profile
+
+New-Item -type file –path $profile -force
+
+Example 2:
+
+.$profile
+

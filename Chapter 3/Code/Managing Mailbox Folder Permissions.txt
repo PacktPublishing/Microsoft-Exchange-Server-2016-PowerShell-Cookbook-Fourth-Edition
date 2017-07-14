@@ -1,0 +1,26 @@
+Example 1:
+
+Set-MailboxFolderPermission -Identity dave:\Calendar `
+-User Default `
+-AccessRights Reviewer
+
+
+Example 2:
+
+$mailboxes = Get-Mailbox -ResultSize Unlimited
+
+$mailboxes | %{
+  $calendar = Get-MailboxFolderPermission "$($_.alias):\Calendar" `
+	-User Default
+	
+	if(!($calendar.AccessRights)) {
+	  Add-MailboxFolderPermission "$($_.alias):\Calendar" `
+		-User Default -AccessRights Reviewer	
+	}
+	
+	if($calendar.AccessRights -ne "Reviewer") {
+	  Set-MailboxFolderPermission "$($_.alias):\Calendar" `
+		-User Default -AccessRights Reviewer
+	}
+	
+}

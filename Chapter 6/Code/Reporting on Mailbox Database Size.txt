@@ -1,0 +1,17 @@
+Example 1:
+
+Get-MailboxDatabase -Status | Select-Object Name,DatabaseSize
+
+
+Example 2:
+
+Get-MailboxDatabase -Status | 
+  Select-Object Name,Server,DatabaseSize,Mounted | 
+    Export-CSV –Path c:\databasereport.csv -NoTypeInformation
+
+	
+Example 3:
+
+Get-MailboxDatabase -Status | 
+  Select-Object Name,
+    @{n="DatabaseSize (MB)";e={$_.DatabaseSize.ToMb()}}

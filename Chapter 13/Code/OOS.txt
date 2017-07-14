@@ -1,0 +1,16 @@
+Example 1:
+
+Get-OfficeWebAppsFarm
+
+New-OfficeWebAppsFarm -InternalURL "https://oos.testlabs.se" -ExternalURL "https://oos.testlabs.se" -CertificateName "OOS certificate"
+
+https://oos.testlabs.se/hosting/discovery
+
+
+Example 2:
+
+Get-OrganizationConfig | fl WacDiscoveryEndpoint
+
+Set-OrganizationConfig -WacDiscoveryEndpoint "https://oos.testlabs.se/hosting/discovery"
+
+Restart-WebAppPool MsExchangeOwaAppPool

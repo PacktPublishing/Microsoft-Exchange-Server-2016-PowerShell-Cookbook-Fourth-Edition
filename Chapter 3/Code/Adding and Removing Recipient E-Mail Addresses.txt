@@ -1,0 +1,43 @@
+Example 1:
+
+Set-Mailbox dave -EmailAddresses @{add='dave@east.contoso.com'}
+
+Set-Mailbox dave -EmailAddresses @{
+  add='dave@east.contoso.com',
+  'dave@west.contoso.com',
+  'dave@corp.contoso.com'
+}
+
+Set-Mailbox dave -EmailAddresses @{remove='dave@west.contoso.com'}
+
+Set-Mailbox dave -EmailAddresses @{
+  remove='dave@east.contoso.com',
+  'dave@corp.contoso.com'
+}
+
+
+Example 2:
+
+Set-Mailbox dave -EmailAddresses @{
+  '+'='dave@east.contoso.com'
+  '-'='dave@west.contoso.com'
+}
+
+
+Example 3:
+
+foreach($i in Get-Mailbox -OrganizationalUnit Sales) {
+  Set-Mailbox $i -EmailAddresses @{
+    add="$($i.alias)@west.contoso.com"
+  }
+}
+
+
+Example 4:
+
+foreach($i in Get-Mailbox -ResultSize Unlimited) {
+  $i.EmailAddresses | 
+    ?{$_.SmtpAddress -like '*@corp.contoso.com'} | %{
+      Set-Mailbox $i -EmailAddresses @{remove=$_}
+    }
+}

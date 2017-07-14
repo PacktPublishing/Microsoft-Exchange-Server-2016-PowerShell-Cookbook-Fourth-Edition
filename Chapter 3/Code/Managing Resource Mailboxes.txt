@@ -1,0 +1,35 @@
+Example 1:
+
+New-Mailbox -Name "CR7" -DisplayName "Conference Room 7" `
+-UserPrincipalName CR7@testlabs.se -Room
+
+
+Example 2:
+
+Set-CalendarProcessing CR7 -AutomateProcessing AutoAccept
+
+
+Example 3:
+
+Set-CalendarProcessing -Identity CR7 `
+-AddAdditionalResponse $true `
+-AdditionalResponse 'For Assistance Contact Support at Ext. #3376'
+
+
+Example 4:
+
+Set-CalendarProcessing -Identity CR7 `
+-ResourceDelegates "rmcleod@testlabs.se","trandolph@testlabs.se" `
+-AutomateProcessing None
+
+
+Example 5:
+
+Set-ResourceConfig -ResourcePropertySchema 'Room/Whiteboard'
+
+Set-Mailbox -Identity CR7 -ResourceCustom Whiteboard
+
+
+Example 6:
+
+Get-Mailbox conf* | Set-Mailbox -Type Room

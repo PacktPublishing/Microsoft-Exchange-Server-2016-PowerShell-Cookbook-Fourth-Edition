@@ -1,0 +1,31 @@
+Example 1:
+
+Get-Mailbox -Database DB2 | Set-User -Office "Headquarters"
+
+Example 2:
+
+Get-Mailbox | Where-Object{$_.MaxSendSize -eq 50mb}
+
+Example 3:
+
+Get-User | 
+  Where-Object{$_.title -eq "Exchange Admin"} | Foreach-Object{
+      Add-RoleGroupMember -Identity "Organization Management" `
+      -Member $_.name
+  }
+
+Example 4:
+
+Get-User | 
+  ?{$_.title -eq "Exchange Admin"} | %{
+    Add-RoleGroupMember -Identity "Organization Management" `
+    -Member $_.name
+  }
+
+Example 5:
+
+Get-User | 
+  where{$_.title -eq "Exchange Admin"} | foreach{
+    Add-RoleGroupMember -Identity "Organization Management" `
+    -Member $_.name
+  }

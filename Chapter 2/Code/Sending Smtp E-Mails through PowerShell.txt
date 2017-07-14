@@ -1,0 +1,33 @@
+Example 1:
+
+Send-MailMessage -To user1@testlabs.se `
+-From administrator@testlabs.se `
+-Subject "Test E-mail" `
+-Body "This is just a test" `
+-SmtpServer tlex01.testlabs.se
+
+
+Example 2:
+
+Send-MailMessage -To support@testlabs.se `
+-From powershell@testlabs.se `
+-Subject "Mailbox Report for $((Get-Date).ToShortDateString())" `
+-Body "Please review the attached mailbox report." `
+-Attachments c:\report.csv `
+-SmtpServer tlex01.testlabs.se
+
+
+Example 3:
+
+[string]$report = Get-MailboxDatabase | 
+  Get-MailboxStatistics| ?{(!$_.DisconnectDate) -and ($_.DisplayName -notlike "HealthMailbox*")} | 
+    Sort-Object TotalItemSize -Desc | 
+      Select-Object DisplayName,Database,TotalItemSize -First 10 | 
+        ConvertTo-Html
+
+Send-MailMessage -To support@testlabs.se `
+-From powershell@testlabs.se `
+-Subject "Mailbox Report for $((Get-Date).ToShortDateString())" `
+-Body $report `
+-BodyAsHtml `
+-SmtpServer ex01.testlabs.se

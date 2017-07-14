@@ -1,0 +1,21 @@
+ref: https://technet.microsoft.com/en-us/library/jj200581(v=exchg.150).aspx#feat
+
+Exchange Hybrid validation tests
+
+MRS Proxy enabled på webservices vdir
+
+Create mailbox directly from on-prem in EXO
+
+Mail flow test <->
+Secure mail flow?
+Check SCL -1 
++ Internal
+
+F/B lookups
+
+EAS test?
+
+
+
+
+EXRCA

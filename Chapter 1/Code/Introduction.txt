@@ -1,0 +1,6 @@
+Example 1:
+$Session = New-PSSession -ConfigurationName Microsoft.Exchange `
+-ConnectionUri http://tlex01/PowerShell/ `
+-Authentication Kerberos
+
+Import-PSSession $Session

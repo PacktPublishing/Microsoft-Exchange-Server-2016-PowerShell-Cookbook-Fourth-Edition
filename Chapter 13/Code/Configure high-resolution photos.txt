@@ -1,0 +1,6 @@
+Example 1:
+
+$photo = ([Byte[]] $(Get-Content -Path "C:\Photos\pdickson.jpg" -Encoding Byte -ReadCount 0))
+Set-UserPhoto -Identity pdickson -PictureData $photo -Confirm:$False
+
+https://mail.testlabs.se/ews/Exchange.asmx/s/GetUserPhoto?email=pdickson@testlabs.se&size=HR648x648

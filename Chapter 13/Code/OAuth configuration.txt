@@ -1,0 +1,40 @@
+Example 1:
+
+Get-ClientAccessService | fl Name, AutoDiscoverServiceInternalUri
+
+
+Example 2:
+
+Get-CsOAuthConfiguration
+
+Set-CsOAuthConfiguration -Identity Global -ExchangeAutodiscoverUrl "https://autodiscover.testlabs.se/autodiscover/autodiscover.svc"
+
+Get-CsCertificate
+
+Get-CsCertificate -Type OAuthTokenIssuer
+
+
+WARNING: Certificate usage type "OAuthTokenIssuer" is missing a required assignment
+
+Request-CsCertificate -New -Type OAuthTokenIssuer -CA "testlabs.se\testlabs-TLDC01-CA" -FriendlyName "Skype for Business Oauth certificate" -KeySize 2048 -PrivateKeyExportable $True -Country "SE" -State "Skane" -City "Malmo" -Organization "Testlabs" -OU "Testlabs" 
+
+Issued thumbprint "682716DE5BAE4C83C69F390603103FD136607040" for use "OAuthTokenIssuer" by "testlabs.se\testlabs-TLDC01-CA".
+
+Issuer             : CN=testlabs-TLDC01-CA, DC=testlabs, DC=se
+NotAfter           : 2019-05-11 22:15:02
+NotBefore          : 2017-05-11 22:15:02
+SerialNumber       : 780000000E64A057A21DAAA48200000000000E
+Subject            : CN=testlabs.se, OU=Testlabs, O=Testlabs, L=Malmo, S=S
+                     kane, C=SE
+AlternativeNames   : {}
+Thumbprint         : 205E093F4CF20FA57874F98B09F9B12EBDDF8D98
+EffectiveDate      :
+PreviousThumbprint :
+UpdateTime         :
+Use                : OAuthTokenIssuer
+SourceScope        :
+
+
+Set-CsCertificate -Identity Global -Thumbprint 205E093F4CF20FA57874F98B09F9B12EBDDF8D98 -Type OAuthTokenIssuer -EffectiveDate "2017-05-11 22:15:02"
+
+The following certificate was assigned for the type "OAuthTokenIssuer":OAuthTokenIssuer: 205E093F4CF20FA57874F98B09F9B12EBDDF8D98 testlabs.se 05-11-2019 CN=testlabs-TLDC01-CA, DC=testlabs, DC=se 780000000E64A057A21DAAA48200000000000E

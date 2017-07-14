@@ -1,0 +1,33 @@
+Example 1:
+
+param($Path)
+if(Test-Path $Path) {
+  switch -wildcard ($env:computername) {
+    "*-MB-*"  {$role = "MB" ; break}
+    "*-MG-*"  {$role = "MT" ; break}
+    "*-ED-*"  {$role = "ET" ; break}
+  }
+  $setup = Join-Path $Path "setup.exe"
+  Invoke-Expression "$setup /mode:install /r:$role /IAcceptExchangeServerLicenseTerms /InstallWindowsComponents"
+}
+else {
+  Write-Host "Invalid Media Path!"
+}
+
+
+Example 2:
+
+param($Path)
+$site = [DirectoryServices.ActiveDirectory.ActiveDirectorySite]
+
+if(Test-Path $Path) {
+  switch ($site::GetComputerSite().Name) {
+    "EX-Deploy" {$role = "MB"}
+    Default {$role = "MT"}
+  }
+  $setup = Join-Path $Path "setup.exe"
+  Invoke-Expression "$setup /mode:install /r:$role /IAcceptExchangeServerLicenseTerms /InstallWindowsComponents"
+}
+else {
+  Write-Host "Invalid Media Path!"
+}

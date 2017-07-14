@@ -1,0 +1,24 @@
+Example 1:
+
+$groups = Get-DistributionGroup -ResultSize Unlimited
+
+foreach($group in $groups){
+ Get-DistributionGroupMember $group | 
+  ?{$_.RecipientTypeDetails -like '*User*'} | 
+   Get-User | ?{$_.UserAccountControl -match 'AccountDisabled'} | 
+    Remove-DistributionGroupMember $group -Confirm:$false
+}
+
+
+Example 2:
+
+$groups = Get-DistributionGroup -ResultSize Unlimited
+
+$report = foreach($group in $groups){
+ Get-DistributionGroupMember $group | 
+  ?{$_.RecipientTypeDetails -like '*User*'} | 
+   Get-User | ?{$_.UserAccountControl -match 'AccountDisabled'} | 
+     Select-Object Name,RecipientTypeDetails,@{n='Group';e={$group}}
+}
+
+$report | Export-CSV c:\disabled_group_members.csv -NoType

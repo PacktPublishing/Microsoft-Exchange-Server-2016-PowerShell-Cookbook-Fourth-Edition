@@ -1,0 +1,33 @@
+Example 1:
+
+Set-MailboxDatabase -Identity DB1 `
+-IssueWarningQuota 2GB `
+-ProhibitSendQuota 2.5GB `
+-ProhibitSendReceiveQuota 3GB
+
+
+Example 2:
+
+Set-MailboxDatabase -Identity DB1 -DeletedItemRetention 30
+
+
+Example 3:
+
+Set-MailboxDatabase -Identity DB1 -MailboxRetention 90
+
+
+Example 4:
+
+Set-MailboxDatabase -Identity DB1 `
+-RetainDeletedItemsUntilBackup $true
+
+
+Example 5:
+
+Get-MailboxDatabase | Set-MailboxDatabase `
+-IssueWarningQuota 2GB `
+-ProhibitSendQuota 2.5GB `
+-ProhibitSendReceiveQuota 3GB `
+-DeletedItemRetention 30 `
+-MailboxRetention 90 `
+-RetainDeletedItemsUntilBackup $true

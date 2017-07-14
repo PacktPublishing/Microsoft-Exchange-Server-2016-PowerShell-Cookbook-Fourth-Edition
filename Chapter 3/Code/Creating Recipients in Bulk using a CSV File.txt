@@ -1,0 +1,50 @@
+Example 1:
+
+$pass = ConvertTo-SecureString -AsPlainText P@ssw0rd01 -Force
+
+Import-CSV C:\Scripts\mailboxes1.csv | % {
+  New-Mailbox -Name $_.Name `
+  -Alias $_.Alias `
+  -UserPrincipalName $_.UserPrincipalName `
+  -OrganizationalUnit $_.OrganizationalUnit `
+  -Password $pass `
+  -ResetPasswordOnNextLogon $true
+}
+
+
+Example 2:
+
+Import-CSV C:\Scripts\mailboxes2.csv | % {
+  $pass = ConvertTo-SecureString -AsPlainText $_.Password -Force
+  
+  New-Mailbox -Name $_.Name `
+  -Alias $_.Alias `
+  -UserPrincipalName $_.UserPrincipalName `
+  -Password $pass
+}
+
+
+Example 3:
+
+Import-CSV C:\Scripts\NewMailboxes.csv | % {
+  New-Mailbox -Name $_.Name `
+  -FirstName $_.FirstName `
+  -LastName $_.LastName `
+  -Alias $_.Alias `
+  -UserPrincipalName $_.UserPrincipalName `
+  -Password (ConvertTo-SecureString -AsPlainText P@ssw0rd -Force) `
+  -OrganizationalUnit $_.OrganizationalUnit `
+  -Database DB1
+  
+  Set-User -Identity $_.Name `
+  -City $_.City `
+  -StateOrProvince $_.State `
+  -Title $_.Title `
+  -Department $_.Department
+
+  Add-DistributionGroupMember -Identity DL_Sales `
+  -Member $_.Name
+
+  Add-DistributionGroupMember -Identity DL_Marketing `
+  -Member $_.Name
+}

@@ -1,0 +1,19 @@
+Example 1:
+
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -command ". 'C:\Program Files\Microsoft\Exchange Server\V15\bin\RemoteExchange.ps1'; Connect-ExchangeServer -auto; c:\Scripts\MoveMailboxes.ps1"
+
+
+Example 2:
+
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -command "$s = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://tlex01.testlabs.se/PowerShell/; Import-PSSession $s; c:\Scripts\MoveMailboxes.ps1"
+
+
+Example 3:
+
+$TaskCommand = "c:\windows\system32\WindowsPowerShell\v1.0\powershell.exe"
+$TaskArg = '-command "$s = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://tlex01.testlabs.se/PowerShell/; Import-PSSession $s; c:\Scripts\MoveMailboxes.ps1"'
+$TaskStartTime = [datetime]::Now.AddMinutes(15)
+
+$TaskAction = New-ScheduledTaskAction -Execute "$TaskCommand" -Argument "$TaskArg" 
+$TaskTrigger = New-ScheduledTaskTrigger -At $TaskStartTime -Once
+Register-ScheduledTask -Action $TaskAction -Trigger $Tasktrigger -TaskName "Scheduled task - Move Mailboxes" -User "testlabs\administrator" -RunLevel Highest

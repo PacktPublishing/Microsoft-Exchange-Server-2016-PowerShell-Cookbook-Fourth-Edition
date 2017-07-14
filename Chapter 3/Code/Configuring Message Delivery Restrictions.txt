@@ -1,0 +1,41 @@
+Example 1:
+
+Set-DistributionGroup -Identity Sales `
+-AcceptMessagesOnlyFrom ‘Bob Smith’,’John Jones’
+
+
+Example 2:
+
+Set-DistributionGroup -Identity Sales `
+-AcceptMessagesOnlyFromSendersOrMembers Marketing,bob@contoso.com
+
+
+Example 3:
+
+get-excommand | ?{$_.parameters.keys -eq 'AcceptMessagesOnlyFrom'}
+
+
+Example 4:
+
+$finance = Get-Mailbox -Filter {Office -eq 'Finance'}
+
+Set-DistributionGroup -Identity Sales `
+-AcceptMessagesOnlyFrom $finance
+
+
+Example 5:
+
+Set-DistributionGroup -Identity Sales `
+-AcceptMessagesOnlyFromSendersOrMembers $null
+
+
+Example 6:
+
+Set-DistributionGroup -Identity Executives `
+-RejectMessagesFromSendersOrMembers HourlyEmployees
+
+
+Example 7:
+
+Set-DistributionGroup -Identity HelpDesk `
+-RequireSenderAuthenticationEnabled $false

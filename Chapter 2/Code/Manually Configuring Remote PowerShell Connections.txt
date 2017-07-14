@@ -1,0 +1,33 @@
+Example 1:
+
+$credential = Get-Credential
+
+$session = New-PSSession -ConfigurationName Microsoft.Exchange `
+-ConnectionUri http://tlex01.testlabs.se/PowerShell/ `
+-Credential $credential
+
+Import-PSSession $session -AllowClobber
+
+
+Example 2:
+
+$session = New-PSSession -ConfigurationName Microsoft.Exchange `
+-ConnectionUri http://tlex01.testlabs.se/PowerShell/
+
+Import-PSSession $session
+
+
+Example 3:
+
+$UserCredential = Get-Credential
+
+$session = New-PSSession -ConfigurationName Microsoft.Exchange `
+-ConnectionUri https://outlook.office365.com/powershell-liveid/ `
+-Credential $UserCredential -Authentication Basic `
+-AllowRedirection
+
+Import-PSSession $session -AllowClobber
+
+Get-Mailbox
+
+Remove-PSSession $session

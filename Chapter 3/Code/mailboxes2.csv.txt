@@ -1,0 +1,6 @@
+Name,Alias,UserPrincipalName,Password
+Pete Dickson,pdickson,Pdickson@contoso.com,4::N2IQzXe
+Emanuel Moss,emoss,Emoss@contoso.com,:$IG%FXxRw
+Lee Sanders,lsanders,Lsanders@contoso.com,Hez9sJz&zX
+Arlene Finley,afinley,Afinley@contoso.com,"9X,/uNKsny"
+Ruben Mcleod,rmcleod,Rmcleod@contoso.com,qD-*[Z(ku(

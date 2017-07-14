@@ -1,0 +1,592 @@
+########################################################################################
+Reporting on mailbox sizes
+
+Get-MailboxDatabase | Get-MailboxStatistics | `
+? {!$_.DisconnectDate} | Select-Object DisplayName, TotalItemSize
+
+
+Get-MailboxDatabase | Get-MailboxStatistics | `
+? {!$_.DisconnectDate} | Select-Object DisplayName, TotalItemSize | `
+Export-CSV C:MBreport.csv -NoType
+
+
+Get-MailboxDatabase | Get-MailboxStatistics | ? {!$_.DisconnectDate} | `
+Select-Object DisplayName, @{n="SizeMB";e={$_.TotalItemSize.value.ToMb()}} | `
+Sort-Object SizeMB -Descending
+
+
+
+
+########################################################################################
+Reporting on the mailbox creation time
+
+Get-Mailbox -ResultSize Unlimited | `
+? {$_.WhenMailboxCreated –ge (Get-Date).AddDays(-7)} | `
+Select DisplayName, WhenMailboxCreated, Database | `
+Export-CSV C:\mb_report.CSV -NoType
+
+
+$_.WhenMailboxCreated –ge (Get-Date).AddDays(-7)
+
+
+Get-Mailbox | ? {$_.WhenMailboxCreated.Month -eq 10}
+
+
+Get-Mailbox | ? {
+ ($_.WhenMailboxCreated.DayOfWeek -eq "Monday") -and `
+ ($_.WhenMailboxCreated.Month -eq 10)
+}
+
+
+
+
+
+########################################################################################
+Working with move requests and performing mailbox moves
+
+New-MoveRequest –Identity testuser –TargetDatabase DB2
+
+
+Get-Mailbox -Database DB1 | New-MoveRequest –TargetDatabase DB2
+
+
+Get-MoveRequest | ? {$_.Status -ne 'Completed'} | Get-MoveRequestStatistics | `
+Select DisplayName, PercentComplete, BytesTransferred
+
+
+While ($True) {
+ Get-MoveRequest | ? {$_.Status -ne 'Completed'}
+ Start-Sleep 5
+ Clear-Host
+}
+
+
+Remove-MoveRequest testuser -Confirm:$False
+
+
+Get-MoveRequest -ResultSize Unlimited | Remove-MoveRequest -Confirm:$False
+
+
+New-MoveRequest testuser -TargetDatabase DB2
+
+
+New-MoveRequest testuser -TargetDatabase DB2 -PrimaryOnly
+
+
+New-MoveRequest testuser -ArchiveOnly -ArchiveTargetDatabase DB3
+
+
+
+$mailboxes = Get-Mailbox -RecipientTypeDetails UserMailbox `
+-Database DB1 | Get-MailboxStatistics | `
+? {$_.TotalItemSize -gt 2gb}
+
+$mailboxes | % { `
+ New-MoveRequest $_.Alias `
+ -BatchName 'Large Mailboxes' `
+ -TargetDatabase DB2 `
+}
+
+
+
+Get-MoveRequest -BatchName 'Large Mailboxes'
+
+
+New-MoveRequest testuser `
+ -BadItemLimit 100 `
+ -AcceptLargeDataLoss `
+ -TargetDatabase DB2
+
+
+
+
+
+########################################################################################
+Email notification on mailbox moves
+
+New-MigrationBatch –Name "Move Batch #1" –CSVData `
+([System.IO.File]::ReadAllBytes("C:localmove.csv")) `
+–Local -TargetDatabase DB2 –NotificationEmails `
+nuno@testlabs.se, jonas@testlabs.se -AutoStart
+
+Get-MigrationUser | Get-MigrationUserStatistics | FT –Autosize
+
+Complete-MigrationBatch –Identity "Move Batch #1"
+
+
+
+
+New-MigrationBatch –Name "Move Batch #2" –CSVData `
+([System.IO.File]::ReadAllBytes("C:\localmove.csv")) –Local `
+-TargetDatabase DB2 –NotificationEmails `
+'administrator@contoso.com','dave@contoso.com' –AutoStart `
+-AutoComplete
+
+
+
+
+
+
+########################################################################################
+Importing and exporting mailboxes
+
+New-ManagementRoleAssignment –Role "Mailbox Import Export" `
+-User administrator
+
+
+New-MailboxExportRequest –Mailbox testuser `
+–Filepath contoso-ex01exporttestuser.pst
+
+
+New-MailboxExportRequest -Mailbox testuser `
+-IncludeFolders "#SentItems#" `
+-FilePath contoso-ex01exporttestuser_sent.pst `
+-ExcludeDumpster
+
+
+New-MailboxExportRequest -Mailbox testuser `
+-ContentFilter {Received -lt "01/01/2014"} `
+-FilePath contoso-ex01exporttestuser_archive.pst `
+-ExcludeDumpster -IsArchive
+
+
+Get-MailboxExportRequest -Mailbox testuser -Status Failed
+
+
+ForEach ($export in Get-MailboxExportRequest) { `
+ Get-MailboxExportRequestStatistics $export | `
+ Select-Object SourceAlias, Status, PercentComplete
+}
+
+
+New-MailboxImportRequest -Mailbox sysadmin `
+-TargetRootFolder "Recover" `
+-FilePath contoso-ex01exporttestuser_sent.pst
+
+
+
+param($Path, $BatchName)
+ForEach ($mbx in Get-Mailbox -ResultSize Unlimited) {
+   $filepath = Join-Path -Path $Path -ChildPath "$($mbx.alias).pst"
+   New-MailboxExportRequest -Mailbox $mbx -FilePath $filepath `
+   -BatchName $BatchName
+}
+
+
+
+$batch = "Export for (Get-Date).ToShortDateString()"
+.Export.ps1 -Path contosoex01export -BatchName $batch
+
+
+Get-MailboxExportRequestStatistics | `
+? {$_.BatchName -eq "Export for 3/1/2017"} | `
+Select SourceAlias, Status, PercentComplete
+
+
+
+
+
+
+########################################################################################
+Deleting messages from mailboxes using Search-Mailbox
+
+New-ManagementRoleAssignment –Role `
+"Mailbox Import Export" -User administrator
+
+New-ManagementRoleAssignment –Role `
+"Mailbox Search" -User administrator
+
+
+Search-Mailbox -Identity testuser `
+-SearchQuery "Subject:'suppress'" `
+-DeleteContent -Force
+
+
+
+Search-Mailbox -Identity testuser `
+-SearchQuery "Subject:'free ipad'" `
+-DoNotIncludeArchive `
+-SearchDumpster:$false `
+-DeleteContent -Force
+
+
+Get-Mailbox | `
+Search-Mailbox -SearchQuery "from:spammer@contoso.com" `
+-EstimateResultOnly | Export-CSV C:report.csv -NoType
+
+
+
+Search-Mailbox -Identity testuser `
+-SearchQuery "Subject:'Accounting Reports'" `
+-TargetMailbox sysadmin `
+-TargetFolder "Delete Log" `
+-LogOnly -LogLevel Full
+
+
+
+Get-Mailbox -ResultSize Unlimited | `
+Search-Mailbox -SearchQuery 'from:spammer@contoso.com' `
+-DeleteContent -Force
+
+
+
+
+
+########################################################################################
+Deleting messages from mailboxes using Compliance Search
+
+New-ManagementRoleAssignment –Role `
+"Mailbox Search" -User administrator
+
+
+
+New-ComplianceSearch -Name "Delete Spam" -ExchangeLocation testuser `
+-ContentMatchQuery 'subject:"New HR Form"'
+
+Start-ComplianceSearch "Delete Spam"
+
+New-ComplianceSearchAction -SearchName "Delete Spam" -Purge -PurgeType SoftDelete
+
+
+
+
+
+
+
+########################################################################################
+Managing disconnected mailboxes
+
+Connect-Mailbox -Identity 'Test User' `
+-Database DB1 `
+-User 'contosotuser1009' `
+-Alias tuser1009
+
+
+Get-MailboxDatabase | `
+Get-MailboxStatistics | ? {$_.DisconnectDate} | `
+FL DisplayName, MailboxGuid, LegacyExchangeDN, DisconnectDate
+
+
+Get-MailboxDatabase | `
+Get-MailboxStatistics | `
+? {$_.DisconnectDate -and $_.IsArchiveMailbox -eq $False} | `
+FL DisplayName, MailboxGuid, LegacyExchangeDN, DisconnectDate
+
+
+
+Function Get-DisconnectedMailbox {
+ param(
+   [String] $Name = '*',
+   [Switch] $Archive
+ )
+
+ $databases = Get-MailboxDatabase
+ $databases | % {
+   $db = Get-Mailboxstatistics -Database $_ | `
+   ? {$_.DisconnectDate -and $_.IsArchiveMailbox -eq $Archive}
+   $db | ? {$_.displayname -like $Name} | Select DisplayName, `
+   MailboxGuid, Database, DisconnectReason
+ }
+}
+
+
+
+
+Remove-StoreMailbox -Identity `
+1c097bde-edec-47df-aa4e-535cbfaa13b4 `
+-Database DB1 `
+-MailboxState SoftDeleted `
+-Confirm:$false
+
+
+
+
+$mb = Get-MailboxDatabase | Get-MailboxStatistics | `
+? {$_.DisconnectDate}
+
+ForEach ($i in $mb) { `
+ Remove-StoreMailbox -Identity $i.MailboxGuid `
+ -Database $i.Database `
+ -MailboxState $i.DisconnectReason.ToString() `
+ -Confirm:$false
+}
+
+
+
+
+
+Update-StoreMailboxState -Database “DatabaseIdParameter” -Identity “StoreMailboxIdParameter” [-Confirm [SwitchParameter]] [-WhatIf [SwitchParameter]]
+
+
+Get-MailboxDatabase | Get-MailboxStatistics | `
+? {$_.DisconnectDate} | FT DisplayName, MailboxGuid, `
+Database, DisconnectReason, DisconnectDate -Auto
+
+
+Update-StoreMailboxState "mailbox_guid" -Database "db_name"
+
+
+Get-MailboxStatistics -Database "db_name" | ForEach { `
+Update-StoreMailboxState -Database $_.Database `
+-Identity $_.MailboxGuid -Confirm:$False}
+
+
+Get-MailboxStatistics -Database "db_name" | `
+? {$_.DisconnectReason -ne $null } | `
+ForEach {Update-StoreMailboxState $_.MailboxGuid `
+-Database $_.Database -Confirm:$False}
+
+
+
+
+
+
+
+
+########################################################################################
+Setting storage quotas for mailboxes
+
+Set-Mailbox testuser `
+-IssueWarningQuota 1024mb `
+-ProhibitSendQuota 1536mb `
+-ProhibitSendReceiveQuota 2048mb `
+-UseDatabaseQuotaDefaults $False
+
+
+
+Get-User -RecipientTypeDetails UserMailbox `
+-Filter {Title -eq 'Manager'} | `
+Set-Mailbox -IssueWarningQuota 2048mb ` -ProhibitSendQuota 2560mb `
+-ProhibitSendReceiveQuota 3072mb `
+-UseDatabaseQuotaDefaults $False
+
+
+
+
+
+
+
+
+
+########################################################################################
+Finding email addresses with numbers
+
+Get-Mailbox -ResultSize Unlimited | `
+? {$_.PrimarySmtpAddress -match "[0-9]"} | `
+FT DisplayName, SamAccountName, PrimarySmtpAddress -Auto
+
+
+Get-ADUser -Filter {mail -like "*"} `
+-Properties mail, SamAccountName, DisplayName | `
+? {$_.mail -match "d"} | `
+FT DisplayName, SamAccountName, mail -Auto
+
+
+
+
+
+
+########################################################################################
+Finding mailboxes with different SIP and Primary SMTP addresses
+
+Get-ADUser -Filter {mail -like "*" `
+-and msRTCSIP-PrimaryUserAddress -like "*" `
+-and msExchMailboxGuid -like "*"} `
+-Properties msRTCSIP-PrimaryUserAddress, mail, DisplayName, SamAccountName | `
+Where {$_."msRTCSIP-PrimaryUserAddress" -notmatch $_.mail} | `
+Sort DisplayName | FT DisplayName, SamAccountName, `
+mail, msRTCSIP-PrimaryUserAddress -AutoSize
+
+
+
+
+[String] $strPrimaryAddress = $strSIP = $null
+[Array] $mbxCol = @()
+
+Get-Mailbox -ResultSize Unlimited | ForEach {
+ $strSIP = $NULL
+ $strPrimaryAddress = $_.PrimarySmtpAddress
+
+ $_.EmailAddresses | ForEach {If ($_.PrefixString -eq "sip") {$strSIP = $_.AddressString}}
+
+ If ($strSIP -and ($strPrimaryAddress -ne $strSIP)) {
+   $mbxObj = New-Object PSObject -Property @{
+     "Display Name" = $_.DisplayName
+     "Primary SMTP Address" = $strPrimaryAddress
+     SIP = $strSIP
+     Username = $_.SamAccountName
+   }
+
+   $mbxCol += $mbxObj
+ }
+}
+
+$mbxCol | Sort "Display Name" | FT "Display Name", Username, SIP, "Primary SMTP Address" -AutoSize
+
+
+
+
+
+
+
+
+########################################################################################
+Finding inactive mailboxes
+
+Get-Mailbox -ResultSize Unlimited | ? { `
+  (Get-MailboxStatistics $_).LastLogonTime -and `
+  (Get-MailboxStatistics $_).LastLogonTime -le `
+  (Get-Date).AddDays(-90)
+}
+
+
+
+Get-ADUser -Filter {Enabled -eq $False -and mail -like "*"} | `
+ForEach {Get-Mailbox $_.SamAccountName -ErrorAction SilentlyContinue | `
+? {$_.RecipientTypeDetails -eq "UserMailbox"}} | `
+Select DisplayName, SamAccountName, PrimarySmtpAddress
+
+
+
+
+
+
+
+########################################################################################
+Detecting and fixing corrupt mailboxes
+
+New-MailboxRepairRequest -Mailbox testuser `
+-CorruptionType SearchFolder, ProvisionedFolder, FolderView, AggregateCounts `
+-DetectOnly
+
+
+New-MailboxRepairRequest -Mailbox testuser `
+-CorruptionType SearchFolder, ProvisionedFolder, FolderView, AggregateCounts
+
+
+Get-Mailbox -OrganizationalUnit "OU=Sales,DC=contoso,DC=com" | `
+New-MailboxRepairRequest -CorruptionType SearchFolder `
+–DetectOnly
+
+
+
+
+Get-MailboxRepairRequest -Mailbox testuser
+
+
+Get-MailboxRepairRequest -Mailbox testuser | Select DetectOnly, JobState, Progress, Tasks, CorruptionsDetected, ErrorCode, CorruptionsFixed, Corruptions
+
+
+Get-MailboxRepairRequest -Database DB1
+
+
+
+
+
+
+
+
+########################################################################################
+Restoring deleted items from mailboxes
+
+New-ManagementRoleAssignment –Role `
+"Mailbox Import Export" -User administrator
+
+New-ManagementRoleAssignment –Role `
+"Mailbox Search" -User administrator
+
+
+Search-Mailbox testuser `
+-SearchQuery "subject:'Expense Report'" `
+-TargetMailbox restoremailbox `
+-TargetFolder "Test Restore" `
+-SearchDumpsterOnly
+
+
+Search-Mailbox testuser `
+-SearchQuery "received:>2/5/2017" `
+-TargetMailbox administrator `
+-TargetFolder "Test Restore" `
+-SearchDumpsterOnly
+
+
+
+
+
+
+
+
+########################################################################################
+Managing public folder mailboxes
+
+New-Mailbox –Name PF_Master_Hierarchy –Alias PF_Master_Hierarchy `
+-Database DB1 –OrganizationalUnit "CN=Users,DC=contoso,DC=com" `
+–PublicFolder
+New-PublicFolder "EURO"
+New-PublicFolder "AMER"
+New-PublicFolder "USA" –Path "AMER"
+New-PublicFolder "Projects" –Path "AMERUSA"
+Enable-MailPublicFolder "AMERUSAProjects"
+
+
+
+Set-OrganizationConfig –DefaultPublicFolderIssueWarningQuota 5GB
+
+
+Set-PublicFolder "AMERUSAProjects" -IssueWarningQuota 3GB -ProhibitPostQuota 4GB
+
+
+
+Set-Mailbox PF_Master_Hierarchy –PublicFolder `
+–IssueWarningQuota 2.5GB `
+–ProhibitSendReceiveQuota 3GB `
+–UseDatabaseQuotaDefaults $False
+
+
+
+
+
+
+
+
+########################################################################################
+Reporting on public folder statistics
+
+Get-Mailbox –PublicFolder | Get-MailboxStatistics | `
+FT DisplayName, TotalItemSize -AutoSize
+Get-PublicFolderStatistics | FT Name, `
+ItemCount, TotalItemSize, TotalDeletedItemSize, `
+FolderPath, MailboxOwnerId -AutoSize
+Get-Mailbox –PublicFolder | Get-MailboxStatistics | `
+Select DisplayName, TotalItemSize | `
+Export-CSV C:PF_Hierarchy.csv -Notype
+Get-PublicFolderStatistics | Select Name, `
+ItemCount, TotalItemSize, TotalDeletedItemSize, FolderPath, `
+MailboxOwnerId | Export-CSV C:PFs.csv -Notype
+
+
+
+
+
+
+
+
+
+########################################################################################
+Managing user access to public folders
+
+Get-PublicFolder –Recurse | Get-PublicFolderClientPermission
+Get-PublicFolder -Recurse | % { `
+Remove-PublicFolderClientPermission $_ -User Default}
+Get-PublicFolder -Recurse | % { `
+Add-PublicFolderClientPermission $_ -User testuser -AccessRights Reviewer}
+
+
+
+Add-PublicFolderClientPermission "" –User PF_AMER_USA_Projects_Owners –AccessRights FolderVisible
+
+Add-PublicFolderClientPermission "AMER" –User PF_AMER_USA_Projects_Owners –AccessRights FolderVisible
+
+Add-PublicFolderClientPermission "AMERUSA" –User PF_AMER_USA_Projects_Owners –AccessRights FolderVisible
+
+Add-PublicFolderClientPermission "AMERUSAProjects" –User PF_AMER_USA_Projects_Owners –AccessRights Owner

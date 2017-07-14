@@ -1,0 +1,32 @@
+Example 1:
+
+Set-OutlookAnywhere -Identity 'TLEX01\Rpc (Default Web Site)' `
+-ExternalHostname mail.testlabs.se `
+-ExternalClientsRequireSsl $true `
+-InternalHostname mail.testlabs.se `
+-InternalClientsRequireSsl $true `
+-ExternalClientAuthenticationMethod Negotiate `
+-InternalClientAuthenticationMethod Ntlm `
+-SSLOffloading $true
+
+
+Example 2:
+
+Get-OutlookAnywhere | fl ServerName,ExternalHostname,InternalHostname
+
+
+Example 3:
+
+Set-OutlookAnywhere -Identity 'TLEX01\Rpc (Default Web Site)' `
+-ExternalHostname 'outlook.contoso.com' `
+-ExternalClientsRequireSsl $true `
+-ExternalClientAuthenticationMethod Negotiate
+
+
+Example 4:
+
+Get-MapiVirtualDirectory | fl Server,ExternalUrl,ExternalAuthenticationMethods,InternalUrl,InternalAuthenticationMethods
+
+Example 5:
+
+Set-MapiVirtualDirectory -Identity 'TLEX01\mapi (Default Web Site)' -ExternalUrl https://mail.testlabs.se/mapi -InternalUrl https://mail.testlabs.se/mapi

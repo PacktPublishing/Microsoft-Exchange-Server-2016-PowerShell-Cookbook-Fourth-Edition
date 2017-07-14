@@ -1,0 +1,440 @@
+###############################################################
+Creating a Database Availability Group
+
+New-DatabaseAvailabilityGroup -Name DAG   '
+-WitnessServer EX1 '
+-WitnessDirectory C:\FSW '
+-DatabaseAvailabilityGroupIPAddresses ([System.Net.IPAddress]::None)
+
+
+New-DatabaseAvailabilityGroup -Name DAG
+
+
+Get-DatabaseAvailabilityGroup DAG
+
+
+Set-DatabaseAvailabilityGroup DAG '
+-WitnessServer EX1 '
+-WitnessDirectory C:\FSW '
+-DatabaseAvailabilityGroupIPAddresses 192.168.1.55
+
+
+New-DatabaseAvailabilityGroup -Name DAG '
+-DatabaseAvailabilityGroupIPAddresses 10.1.1.10,192.168.1.10
+
+
+Set-DatabaseAvailabilityGroup -Identity DAG '
+-DatabaseAvailabilityGroupIPAddresses 10.1.1.25,192.168.1.25
+
+
+
+
+
+
+
+
+###############################################################
+Adding mailbox servers to a Database Availability Group
+
+Add-DatabaseAvailabilityGroupServer  DAG '
+-MailboxServer MBX1
+
+
+
+Get-MailboxServer | Add-DatabaseAvailabilityGroupServer DAG
+
+
+
+$mbx = Get-ExchangeServer | ? { `
+  $_.Site -match 'Default-First-Site-Name' `
+  -and $_.ServerRole -match 'Mailbox'
+}
+$mbx | % {
+  Add-DatabaseAvailabilityGroupServer DAG `
+  -MailboxServer $_
+}
+
+
+
+
+
+
+
+
+###############################################################
+Configuring Database Availability Group network settings
+Set-DatabaseAvailabilityGroup DAG –DiscoverNetworks
+
+
+
+Set-DatabaseAvailabilityGroup DAG '
+–ManualDagNetworkConfiguration $True
+Set-DatabaseAvailabilityGroupNetwork '
+DAG\MapiDagNetwork -ReplicationEnabled $False
+
+
+Set-DatabaseAvailabilityGroupNetwork DAG\DAGNetwork04 '
+-IgnoreNetwork $True
+
+
+
+Remove-DatabaseAvailabilityGroupNetwork '
+DAG\Replication -Confirm:$False
+
+
+Set-DatabaseAvailabilityGroup DAG -ManualDagNetworkConfiguration $False -DiscoverNetworks
+
+
+Set-DatabaseAvailabilityGroupNetwork '
+DAG\ReplicationDagNetwork03 -Name Replication
+
+
+
+Set-DatabaseAvailabilityGroup DAG -NetworkEncryption Enabled
+
+
+
+Set-DatabaseAvailabilityGroup DAG -NetworkCompression Enabled
+
+
+
+
+
+
+###############################################################
+Adding mailbox copies to a Database Availability Group
+
+Add-MailboxDatabaseCopy DB01 '
+-MailboxServer MBX2 '
+-ActivationPreference 2
+
+
+
+
+
+function New-DAGMailboxDatabase {
+param (
+    $ActiveServer,
+    $PassiveServer,
+    $DatabasePrefix,
+    $DatabaseCount,
+    $EdbFolderPath,
+    $LogFolderPath
+  )
+For ($i=1; $i –le $DatabaseCount; $i++) {
+    $DBName = $DatabasePrefix + $i
+    New-MailboxDatabase -Name $DBName '
+    -EdbFilePath "$EdbFolderPath\$DBName\$DBName.edb" '
+    -LogFolderPath "$LogFolderPath\$DBName" '
+    -Server $ActiveServer
+    Mount-Database $DBName
+    $PassiveServer | Foreach-Object {
+      Add-MailboxDatabaseCopy $DBName '
+      -MailboxServer $_
+    }
+  }
+}
+
+
+
+
+New-DAGMailboxDatabase -ActiveServer mbx1 '
+-PassiveServer mbx2,mbx3,mbx4,mbx5 '
+-DatabaseCount 3 '
+-DatabasePrefix MDB '
+-EdbFolderPath E:\Database '
+-LogFolderPath E:\Database
+
+
+
+
+
+
+
+###############################################################
+Activating mailbox database copies
+
+Move-ActiveMailboxDatabase DB01 '
+-ActivateOnServer MBX2 '
+-Confirm:$False
+
+
+Move-ActiveMailboxDatabase -Server MBX2 '
+-ActivateOnServer MBX1 -Confirm:$False
+
+
+Move-ActiveMailboxDatabase DB01 '
+-ActivateOnServer MBX1 '
+-MountDialOverride GoodAvailability '
+-Confirm:$False
+
+
+
+Move-ActiveMailboxDatabase DB01 '
+-ActivateOnServer MBX1 '
+-SkipClientExperienceChecks '
+-Confirm:$False
+
+
+Move-ActiveMailboxDatabase DB01 '
+-ActivateOnServer MBX1 '
+-SkipHealthChecks '
+-Confirm:$False
+
+
+Move-ActiveMailboxDatabase DB01 '
+-ActivateOnServer MBX1 '
+-SkipLagChecks '
+-Confirm:$False
+
+
+
+Set-MailboxServer MBX1 –DatabaseCopyActivationDisabledAndMoveNow $True
+
+
+
+Set-MailboxServer MBX1 –DatabaseCopyAutoActivationPolicy Blocked
+
+
+New-SettingOverride –Component WorkloadManagement –Section Black-out –Parameters @(“StartTime=09:00:00”, “EndTime=17:00:00”) –Name “No DB moves during business hours” –Reason “Prevent DB moves dur-ing peak hours”
+
+
+
+
+
+
+###############################################################
+Working with lagged database copies
+
+Add-MailboxDatabaseCopy DB03 '
+-MailboxServer MBX2 '
+-ReplayLagTime 3.00:00:00
+
+
+Set-MailboxDatabaseCopy DB01\MBX2 '
+-ReplayLagTime 12:00:00
+
+
+
+Set-MailboxDatabaseCopy DB01\MBX2 '
+-ReplayLagTime (New-TimeSpan -Hours 12)
+
+
+
+Suspend-MailboxDatabaseCopy DB01\MBX2 '
+-ActivationOnly -Confirm:$False
+
+
+
+
+Set-DatabaseAvailabilityGroup DAG -ReplayLagManagerEnabled $False
+
+
+
+Set-MailboxDatabaseCopy DB01\MBX2 -ReplayLagMaxDelay:00.12:00:00
+
+
+
+
+
+
+
+
+
+###############################################################
+Reseeding a database copy  
+
+Suspend-MailboxDatabaseCopy DB01\MBX2 -Confirm:$False
+
+
+Update-MailboxDatabaseCopy DB01\MBX2 -DeleteExistingFiles 
+
+
+Update-MailboxDatabaseCopy DB01\MBX2 '
+-DeleteExistingFiles -ManualResume
+
+
+Resume-MailboxDatabaseCopy DB01\MBX2
+
+
+
+Update-MailboxDatabaseCopy DB01\MBX2 `
+-SourceServer MBX3 `
+-DeleteExistingFiles
+
+
+
+Update-MailboxDatabaseCopy DB01\MBX2 -CatalogOnly
+
+
+
+Update-MailboxDatabaseCopy DB01\MBX2 -DatabaseOnly
+
+
+
+
+
+
+
+
+
+
+###############################################################
+Using the automatic reseed feature
+
+Set-DatabaseAvailabilityGroup DAG '
+-AutoDagDatabasesRootFolderPath "C:\ExDbs"
+Set-DatabaseAvailabilityGroup DAG '
+-AutoDagVolumesRootFolderPath "C:\ExVols"
+Set-DatabaseAvailabilityGroup DAG '
+-AutoDagDatabaseCopiesPerVolume 1
+
+
+
+Get-DatabaseAvailabilityGroup DAG | Format-List *auto*
+
+
+
+md C:\ExDBs
+md C:\ExDBs\DB01
+md C:\ExVols
+md C:\ExVols\Volume1
+md C:\ExVols\Volume2
+
+
+dir C:\ExDBs /s
+dir C:\ExVols /s
+
+
+
+
+Mountvol.exe C:\ExDBs\DB01 \\?\Volume{43895ac2-a485-11e2-93f5`-
+000c2997a8b3}\
+Mountvol.exe C:\ExVols\Volume1 \\?\Volume{53ac38df-68fe-48b6-ac1f-68a2831fcf50}\
+Mountvol.exe C:\ExVols\Volume2 \\?\Volume{6e762c53-4974-4b06-b036-940383b09e8a}\
+
+
+Mountvol.exe C:\ExDBs\DB01 /L
+Mountvol.exe C:\ExVols\Volume1 /L
+Mountvol.exe C:\ExVols\Volume2 /L
+
+
+md C:\ExVols\Volume1\DB01.db
+md C:\ExVols\Volume1\DB01.log
+
+
+C:\<DatabaseFolderName>\VolumeX\<dbname>.db
+C:\<DatabaseFolderName>\VolumeX\<dbname>.log
+
+
+dir C:\ExDBs /s
+dir C:\ExVols /s
+
+
+New-MailboxDatabase -Name DB01 -Server TLEX1 '
+-EdbFilePath C:\ExDBs\DB01\DB01.db\DB01.edb '
+-LogFolderPath C:\ExDBs\DB01\DB01.log
+Mount-Database DB01
+
+
+Add-MailboxDatabaseCopy DB01 -MailboxServer TLEX02 `
+-ActivationPreference 2 
+
+
+
+
+
+###############################################################
+Performing maintenance on Database Availability Group members
+
+Set-Location $exscripts
+
+
+.\StartDagServerMaintenance.ps1 -ServerName MBX1 
+
+
+.\StopDagServerMaintenance.ps1 -ServerName MBX1
+
+
+
+.\RedistributeActiveDatabases.ps1 -DagName DAG '
+-BalanceDbsByActivationPreference '
+-ShowFinalDatabaseDistribution '
+-Confirm:$False
+
+
+
+
+
+
+
+
+###############################################################
+Reporting on database status, redundancy, and replication
+
+Get-MailboxDatabase | `
+Get-MailboxDatabaseCopyStatus | `
+Select Name, Status, ContentIndexState
+
+
+Get-MailboxDatabaseCopyStatus -Server MBX1 | Format-List
+
+
+Get-MailboxDatabaseCopyStatus DB01\MBX1
+
+
+Get-MailboxDatabaseCopyStatus DB01\MBX2 '
+-ConnectionStatus | Format-List
+
+
+
+
+param(
+  $To,
+  $From,
+  $SMTPServer
+)
+
+$DAGs = Get-DatabaseAvailabilityGroup
+$DAGs | Foreach-Object {
+  $_.Servers | Foreach-Object {
+    $test = Test-ReplicationHealth $_.Name
+    $errors = $test | Where-Object {$_.Error}
+    If ($errors) {
+      $errors | Foreach-Object {
+        Send-MailMessage -To $To '
+        -From $From '
+        -Subject "Replication Health Error" '
+        -Body $_.Error '
+        -SmtpServer $SMTPServer
+      }
+    }
+  }
+}
+
+
+
+
+c:\>.\ReplicationHealth.ps1 -To administrator@contoso.com '
+-From sysadmin@contoso.com '
+-SMTPServer EX1.contoso.com
+
+
+
+
+Set-Location $exscripts
+
+
+.\CollectOverMetrics.ps1 -DatabaseAvailabilityGroup DAG '
+-ReportPath C:\temp\Report
+
+
+Import-Csv C:\temp\Report\FailoverReport.DAG.2017_04_22_06_47_30.csv 
+
+
+
+
+.\CollectReplicationMetrics.ps1 -DagName DAG '
+-Duration '01:00:00' '
+-Frequency '00:01:00' '
+-ReportPath C:\temp\reports

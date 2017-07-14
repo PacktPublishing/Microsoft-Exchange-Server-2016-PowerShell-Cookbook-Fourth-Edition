@@ -1,0 +1,35 @@
+Example 1:
+
+Get-Help Get-Mailbox -full
+
+Example 2:
+
+Get-Help New-Mailbox -Parameter Password
+
+Example 3:
+
+Get-Command *Mailbox*
+
+Example 4:
+
+Get-Command -Verb Set
+
+Example 5:
+
+Get-Command -Noun Mailbox
+
+Example 6:
+
+Get-Help about_Core_Commands
+
+Example 7:
+
+Get-Help about_*
+
+Example 8:
+
+Get-Command Get-Service
+
+Example 9:
+
+Get-Command Get-Mailbox
